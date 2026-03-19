@@ -1,0 +1,7 @@
+<Project>
+  <Target Name="FailIfCoverageThresholdMissing"
+          BeforeTargets="Test"
+          Condition="'$(IsDalamudMcpTestProject)' == 'true' and '$(CoverageThreshold)' == ''">
+    <Error Text="CoverageThreshold must be set for all test projects." />
+  </Target>
+</Project>

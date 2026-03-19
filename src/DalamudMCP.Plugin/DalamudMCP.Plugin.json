@@ -1,0 +1,18 @@
+{
+  "Author": "OpenAI",
+  "Name": "DalamudMCP",
+  "InternalName": "DalamudMCP",
+  "AssemblyVersion": "0.1.0.0",
+  "Punchline": "Local MCP bridge for FFXIV observation capabilities.",
+  "Description": "Exposes read-only FFXIV context through a local MCP host bridge.",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "mcp,automation,tools"
+  ],
+  "DalamudApiLevel": 14,
+  "LoadRequiredState": 0,
+  "LoadSync": false,
+  "CanUnloadAsync": false,
+  "LoadPriority": 0,
+  "AcceptsFeedback": false
+}

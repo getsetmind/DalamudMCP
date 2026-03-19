@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DalamudMCP.Application</RootNamespace>
+    <AssemblyName>DalamudMCP.Application</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DalamudMCP.Domain\DalamudMCP.Domain.csproj" />
+  </ItemGroup>
+</Project>
