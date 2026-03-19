@@ -68,6 +68,42 @@ internal static class PluginReaderValueFormatter
         return entries;
     }
 
+    public static IReadOnlyDictionary<string, int> CreateInventoryCategoryCounts(
+        int mainInventoryCount,
+        int equippedCount,
+        int armoryCount,
+        int currencyEntryCount,
+        int crystalStackCount) =>
+        new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["main_inventory"] = mainInventoryCount,
+            ["equipped"] = equippedCount,
+            ["armory"] = armoryCount,
+            ["currency_entries"] = currencyEntryCount,
+            ["crystal_stacks"] = crystalStackCount,
+        };
+
+    public static string FormatInventorySummary(
+        int occupiedSlots,
+        int totalSlots,
+        int gil,
+        int equippedCount,
+        int armoryCount,
+        int currencyEntryCount,
+        int crystalStackCount)
+    {
+        var gilText = gil > 0
+            ? $"{gil.ToString(CultureInfo.InvariantCulture)} gil tracked"
+            : "gil unavailable";
+
+        return
+            $"{occupiedSlots.ToString(CultureInfo.InvariantCulture)}/{totalSlots.ToString(CultureInfo.InvariantCulture)} main inventory slots occupied; " +
+            $"{armoryCount.ToString(CultureInfo.InvariantCulture)} armory items, " +
+            $"{equippedCount.ToString(CultureInfo.InvariantCulture)} equipped items, " +
+            $"{currencyEntryCount.ToString(CultureInfo.InvariantCulture)} currency entries, and " +
+            $"{crystalStackCount.ToString(CultureInfo.InvariantCulture)} crystal stacks tracked ({gilText}).";
+    }
+
     public static string? FormatValue(object? value) =>
         value switch
         {

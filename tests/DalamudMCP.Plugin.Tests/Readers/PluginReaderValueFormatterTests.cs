@@ -58,4 +58,33 @@ public sealed class PluginReaderValueFormatterTests
                 Assert.Equal("true", entry.DecodedValue);
             });
     }
+
+    [Fact]
+    public void CreateInventoryCategoryCounts_ReturnsStableKeys()
+    {
+        var counts = PluginReaderValueFormatter.CreateInventoryCategoryCounts(77, 13, 42, 4, 3);
+
+        Assert.Equal(77, counts["main_inventory"]);
+        Assert.Equal(13, counts["equipped"]);
+        Assert.Equal(42, counts["armory"]);
+        Assert.Equal(4, counts["currency_entries"]);
+        Assert.Equal(3, counts["crystal_stacks"]);
+    }
+
+    [Fact]
+    public void FormatInventorySummary_IncludesOccupancyAndGil()
+    {
+        var summary = PluginReaderValueFormatter.FormatInventorySummary(
+            occupiedSlots: 77,
+            totalSlots: 140,
+            gil: 123456,
+            equippedCount: 13,
+            armoryCount: 42,
+            currencyEntryCount: 4,
+            crystalStackCount: 3);
+
+        Assert.Equal(
+            "77/140 main inventory slots occupied; 42 armory items, 13 equipped items, 4 currency entries, and 3 crystal stacks tracked (123456 gil tracked).",
+            summary);
+    }
 }

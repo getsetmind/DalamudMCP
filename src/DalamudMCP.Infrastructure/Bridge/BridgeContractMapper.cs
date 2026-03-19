@@ -1,6 +1,7 @@
 using DalamudMCP.Application.Common;
 using DalamudMCP.Contracts.Bridge;
 using DalamudMCP.Contracts.Bridge.Responses;
+using DalamudMCP.Domain.Actions;
 using DalamudMCP.Domain.Policy;
 using DalamudMCP.Domain.Session;
 using DalamudMCP.Domain.Snapshots;
@@ -83,6 +84,77 @@ public static class BridgeContractMapper
             snapshot.AddonName,
             snapshot.CapturedAt,
             snapshot.Entries.Select(static entry => new StringTableEntryContract(entry.Index, entry.RawValue, entry.DecodedValue)).ToArray()));
+
+    public static QueryResponse<NearbyInteractablesContract> ToResponse(QueryResult<NearbyInteractablesSnapshot> result) =>
+        ToQueryResponse(result, static snapshot => new NearbyInteractablesContract(
+            snapshot.MaxDistance,
+            snapshot.Interactables.Select(static interactable => new NearbyInteractableContract(
+                interactable.GameObjectId,
+                interactable.Name,
+                interactable.ObjectKind,
+                interactable.IsTargetable,
+                interactable.Distance,
+                interactable.HitboxRadius,
+                ToContract(interactable.Position))).ToArray(),
+            snapshot.SummaryText));
+
+    public static QueryResponse<TargetObjectResultContract> ToResponse(QueryResult<TargetObjectResult> result) =>
+        ToQueryResponse(result, static actionResult => new TargetObjectResultContract(
+            actionResult.RequestedGameObjectId,
+            actionResult.Succeeded,
+            actionResult.Reason,
+            actionResult.TargetedGameObjectId,
+            actionResult.TargetName,
+            actionResult.ObjectKind,
+            actionResult.SummaryText));
+
+    public static QueryResponse<InteractWithTargetResultContract> ToResponse(QueryResult<InteractWithTargetResult> result) =>
+        ToQueryResponse(result, static actionResult => new InteractWithTargetResultContract(
+            actionResult.ExpectedGameObjectId,
+            actionResult.Succeeded,
+            actionResult.Reason,
+            actionResult.InteractedGameObjectId,
+            actionResult.TargetName,
+            actionResult.ObjectKind,
+            actionResult.Distance,
+            actionResult.SummaryText));
+
+    public static QueryResponse<MoveToEntityResultContract> ToResponse(QueryResult<MoveToEntityResult> result) =>
+        ToQueryResponse(result, static actionResult => new MoveToEntityResultContract(
+            actionResult.RequestedGameObjectId,
+            actionResult.Succeeded,
+            actionResult.Reason,
+            actionResult.ResolvedGameObjectId,
+            actionResult.TargetName,
+            actionResult.ObjectKind,
+            ToContract(actionResult.Destination),
+            actionResult.SummaryText));
+
+    public static QueryResponse<TeleportToAetheryteResultContract> ToResponse(QueryResult<TeleportToAetheryteResult> result) =>
+        ToQueryResponse(result, static actionResult => new TeleportToAetheryteResultContract(
+            actionResult.RequestedQuery,
+            actionResult.Succeeded,
+            actionResult.Reason,
+            actionResult.AetheryteId,
+            actionResult.AetheryteName,
+            actionResult.TerritoryName,
+            actionResult.SummaryText));
+
+    public static QueryResponse<AddonCallbackIntResultContract> ToResponse(QueryResult<AddonCallbackIntResult> result) =>
+        ToQueryResponse(result, static actionResult => new AddonCallbackIntResultContract(
+            actionResult.AddonName,
+            actionResult.Value,
+            actionResult.Succeeded,
+            actionResult.Reason,
+            actionResult.SummaryText));
+
+    public static QueryResponse<AddonCallbackValuesResultContract> ToResponse(QueryResult<AddonCallbackValuesResult> result) =>
+        ToQueryResponse(result, static actionResult => new AddonCallbackValuesResultContract(
+            actionResult.AddonName,
+            [.. actionResult.Values],
+            actionResult.Succeeded,
+            actionResult.Reason,
+            actionResult.SummaryText));
 
     public static CapabilityStateResponse ToResponse(ExposurePolicy policy) =>
         new(

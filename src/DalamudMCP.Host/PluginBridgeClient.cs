@@ -61,6 +61,27 @@ public sealed class PluginBridgeClient
     public Task<QueryResponse<StringTableContract>> ReadAddonStringsResourceAsync(string addonName, CancellationToken cancellationToken) =>
         SendQueryAsync<StringTableContract>(BridgeRequestTypes.ReadAddonStringsResource, new AddonRequest(addonName), cancellationToken);
 
+    public Task<QueryResponse<NearbyInteractablesContract>> GetNearbyInteractablesAsync(NearbyInteractablesRequest request, CancellationToken cancellationToken) =>
+        SendQueryAsync<NearbyInteractablesContract>(BridgeRequestTypes.GetNearbyInteractables, request, cancellationToken);
+
+    public Task<QueryResponse<TargetObjectResultContract>> TargetObjectAsync(TargetObjectRequest request, CancellationToken cancellationToken) =>
+        SendQueryAsync<TargetObjectResultContract>(BridgeRequestTypes.TargetObject, request, cancellationToken);
+
+    public Task<QueryResponse<InteractWithTargetResultContract>> InteractWithTargetAsync(InteractWithTargetRequest request, CancellationToken cancellationToken) =>
+        SendQueryAsync<InteractWithTargetResultContract>(BridgeRequestTypes.InteractWithTarget, request, cancellationToken);
+
+    public Task<QueryResponse<MoveToEntityResultContract>> MoveToEntityAsync(MoveToEntityRequest request, CancellationToken cancellationToken) =>
+        SendQueryAsync<MoveToEntityResultContract>(BridgeRequestTypes.MoveToEntity, request, cancellationToken);
+
+    public Task<QueryResponse<TeleportToAetheryteResultContract>> TeleportToAetheryteAsync(TeleportToAetheryteRequest request, CancellationToken cancellationToken) =>
+        SendQueryAsync<TeleportToAetheryteResultContract>(BridgeRequestTypes.TeleportToAetheryte, request, cancellationToken);
+
+    public Task<QueryResponse<AddonCallbackIntResultContract>> SendAddonCallbackIntAsync(AddonCallbackIntRequest request, CancellationToken cancellationToken) =>
+        SendQueryAsync<AddonCallbackIntResultContract>(BridgeRequestTypes.SendAddonCallbackInt, request, cancellationToken);
+
+    public Task<QueryResponse<AddonCallbackValuesResultContract>> SendAddonCallbackValuesAsync(AddonCallbackValuesRequest request, CancellationToken cancellationToken) =>
+        SendQueryAsync<AddonCallbackValuesResultContract>(BridgeRequestTypes.SendAddonCallbackValues, request, cancellationToken);
+
     public Task<CapabilityStateResponse> GetCapabilityStateAsync(CancellationToken cancellationToken) =>
         SendPayloadAsync<CapabilityStateResponse>(BridgeRequestTypes.GetCapabilityState, new EmptyRequest(), BridgeResponseTypes.CapabilityState, cancellationToken);
 

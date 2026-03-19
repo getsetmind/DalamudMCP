@@ -60,4 +60,59 @@ public sealed class McpToolHandlersTests
         Assert.Equal(root.Options.PipeName, typed.Data?.PipeName);
         Assert.True(typed.Data?.IsBridgeServerRunning);
     }
+
+    [Fact]
+    public async Task TargetObjectHandler_RequiresGameObjectId()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var workingDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        await using var root = PluginCompositionRoot.CreateDefault(workingDirectory, $"DalamudMCP.ToolHandlers.{Guid.NewGuid():N}");
+        await root.SettingsRepository.SaveAsync(
+            new ExposurePolicy(
+                enabledTools: ["target_object"],
+                actionProfileEnabled: true),
+            cancellationToken);
+        await root.StartAsync(cancellationToken);
+
+        var handler = new TargetObjectToolHandler(new PluginBridgeClient(root.Options.PipeName));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => handler.InvokeAsync(new { }, cancellationToken));
+    }
+
+    [Fact]
+    public async Task TeleportToAetheryteHandler_RequiresQuery()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var workingDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        await using var root = PluginCompositionRoot.CreateDefault(workingDirectory, $"DalamudMCP.ToolHandlers.{Guid.NewGuid():N}");
+        await root.SettingsRepository.SaveAsync(
+            new ExposurePolicy(
+                enabledTools: ["teleport_to_aetheryte"],
+                actionProfileEnabled: true),
+            cancellationToken);
+        await root.StartAsync(cancellationToken);
+
+        var handler = new TeleportToAetheryteToolHandler(new PluginBridgeClient(root.Options.PipeName));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => handler.InvokeAsync(new { }, cancellationToken));
+    }
+
+    [Fact]
+    public async Task AddonCallbackValuesHandler_RequiresValues()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var workingDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        await using var root = PluginCompositionRoot.CreateDefault(workingDirectory, $"DalamudMCP.ToolHandlers.{Guid.NewGuid():N}");
+        await root.SettingsRepository.SaveAsync(
+            new ExposurePolicy(
+                enabledTools: ["send_addon_callback_values"],
+                enabledAddons: ["TelepotTown"],
+                actionProfileEnabled: true),
+            cancellationToken);
+        await root.StartAsync(cancellationToken);
+
+        var handler = new AddonCallbackValuesToolHandler(new PluginBridgeClient(root.Options.PipeName));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => handler.InvokeAsync(new { addonName = "TelepotTown" }, cancellationToken));
+    }
 }

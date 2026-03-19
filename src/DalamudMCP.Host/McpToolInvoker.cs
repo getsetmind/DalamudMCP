@@ -79,8 +79,19 @@ public sealed class McpToolInvoker
             return true;
         }
 
-        return capabilityState.ObservationProfileEnabled
-            && capabilityState.EnabledTools.Contains(toolName, StringComparer.OrdinalIgnoreCase);
+        if (!capabilityState.EnabledTools.Contains(toolName, StringComparer.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return string.Equals(toolName, "target_object", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(toolName, "interact_with_target", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(toolName, "move_to_entity", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(toolName, "send_addon_callback_int", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(toolName, "send_addon_callback_values", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(toolName, "teleport_to_aetheryte", StringComparison.OrdinalIgnoreCase)
+            ? capabilityState.ActionProfileEnabled
+            : capabilityState.ObservationProfileEnabled;
     }
 
     private bool IsAddonAllowed(string toolName, object? arguments, CapabilityStateResponse? capabilityState)
@@ -119,6 +130,13 @@ public sealed class McpToolInvoker
             new AddonListToolHandler(bridgeClient),
             new AddonTreeToolHandler(bridgeClient),
             new AddonStringsToolHandler(bridgeClient),
+            new NearbyInteractablesToolHandler(bridgeClient),
+            new TargetObjectToolHandler(bridgeClient),
+            new InteractWithTargetToolHandler(bridgeClient),
+            new MoveToEntityToolHandler(bridgeClient),
+            new TeleportToAetheryteToolHandler(bridgeClient),
+            new AddonCallbackIntToolHandler(bridgeClient),
+            new AddonCallbackValuesToolHandler(bridgeClient),
         ];
 
     private async Task TryRecordDeniedAsync(string eventType, string summary, CancellationToken cancellationToken)

@@ -85,23 +85,33 @@ public sealed class PluginHostPathResolver
             return null;
         }
 
+        var repoRoot = Path.GetFullPath(Path.Combine(
+            pluginAssemblyDirectory,
+            "..",
+            "..",
+            "..",
+            "..",
+            ".."));
+
         var candidates = new[]
         {
+            Path.GetFullPath(Path.Combine(pluginAssemblyDirectory, "DalamudMCP.Host.dll")),
+            Path.Combine(
+                repoRoot,
+                "artifacts",
+                "verify",
+                configurationDirectory,
+                frameworkMoniker,
+                "DalamudMCP.Host.dll"),
             Path.GetFullPath(Path.Combine(
-                pluginAssemblyDirectory,
-                "..",
-                "..",
-                "..",
-                "..",
-                "..",
+                repoRoot,
                 "src",
                 "DalamudMCP.Host",
                 "bin",
                 configurationDirectory,
                 frameworkMoniker,
                 "DalamudMCP.Host.dll")),
-            Path.GetFullPath(Path.Combine(pluginAssemblyDirectory, "DalamudMCP.Host.dll")),
-        };
+        }.Select(Path.GetFullPath);
 
         return candidates.FirstOrDefault(File.Exists);
     }

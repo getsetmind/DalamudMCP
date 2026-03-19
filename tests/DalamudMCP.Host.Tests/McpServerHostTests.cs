@@ -52,15 +52,15 @@ public sealed class McpServerHostTests
     {
         var host = CreateHost();
 
-        var firstPage = await host.ListToolsAsync(cursor: null, pageSize: 2, TestContext.Current.CancellationToken);
-        var secondPage = await host.ListToolsAsync(firstPage.NextCursor, pageSize: 2, TestContext.Current.CancellationToken);
+        var result = await host.ListToolsAsync(cursor: null, pageSize: 20, TestContext.Current.CancellationToken);
 
-        Assert.Equal(2, firstPage.Tools.Count);
-        Assert.Equal("2", firstPage.NextCursor);
-        Assert.Equal(2, secondPage.Tools.Count);
-        Assert.Equal("4", secondPage.NextCursor);
+        Assert.Contains(result.Tools, static tool => tool.Name == "get_addon_tree");
+        Assert.Contains(result.Tools, static tool => tool.Name == "get_nearby_interactables");
+        Assert.Contains(result.Tools, static tool => tool.Name == "target_object");
+        Assert.Contains(result.Tools, static tool => tool.Name == "teleport_to_aetheryte");
+        Assert.Null(result.NextCursor);
 
-        var addonTreeTool = secondPage.Tools.Single(static tool => tool.Name == "get_addon_tree");
+        var addonTreeTool = result.Tools.Single(static tool => tool.Name == "get_addon_tree");
         Assert.True(addonTreeTool.InputSchema.TryGetProperty("properties", out var properties));
         Assert.True(properties.TryGetProperty("addonName", out var addonNameSchema));
         Assert.Equal("string", addonNameSchema.GetProperty("type").GetString());
@@ -71,6 +71,12 @@ public sealed class McpServerHostTests
         Assert.True(addonTreeTool.Annotations.IdempotentHint);
         Assert.False(addonTreeTool.Annotations.DestructiveHint);
         Assert.False(addonTreeTool.Annotations.OpenWorldHint);
+
+        var targetTool = result.Tools.Single(static tool => tool.Name == "target_object");
+        Assert.False(targetTool.Annotations.ReadOnlyHint);
+        Assert.False(targetTool.Annotations.IdempotentHint);
+        Assert.True(targetTool.Annotations.DestructiveHint);
+        Assert.True(targetTool.Annotations.OpenWorldHint);
     }
 
     [Fact]

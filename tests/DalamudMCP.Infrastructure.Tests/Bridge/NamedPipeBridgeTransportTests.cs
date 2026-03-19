@@ -46,7 +46,7 @@ public sealed class NamedPipeBridgeTransportTests
             $"DalamudMCP.TransportTests.Missing.{Guid.NewGuid():N}",
             TimeSpan.FromMilliseconds(50));
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAsync<TimeoutException>(() =>
             client.SendAsync(
                 new BridgeRequestEnvelope(
                     ContractVersion.Current,
@@ -75,16 +75,16 @@ public sealed class NamedPipeBridgeTransportTests
         await server.StartAsync(cancellationToken);
         var client = new NamedPipeBridgeClient(pipeName);
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            client.SendAsync(
-                new BridgeRequestEnvelope(
-                    ContractVersion.Current,
-                    BridgeRequestTypes.GetPlayerContext,
-                    "req-version",
-                    new EmptyRequest()),
-                cancellationToken));
+        var response = await client.SendAsync(
+            new BridgeRequestEnvelope(
+                ContractVersion.Current,
+                BridgeRequestTypes.GetPlayerContext,
+                "req-version",
+                new EmptyRequest()),
+            cancellationToken);
 
-        Assert.Contains("Unsupported contract version", exception.Message, StringComparison.Ordinal);
+        Assert.False(response.Success);
+        Assert.Equal("invalid_contract_version", response.ErrorCode);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using DalamudMCP.Application.UseCases.Action;
 using DalamudMCP.Application.UseCases.Observation;
 using DalamudMCP.Application.UseCases.Settings;
 using DalamudMCP.Contracts.Bridge;
@@ -15,6 +16,13 @@ public sealed class BridgeRequestDispatcher
     private readonly GetAddonListUseCase getAddonListUseCase;
     private readonly GetAddonTreeUseCase getAddonTreeUseCase;
     private readonly GetAddonStringsUseCase getAddonStringsUseCase;
+    private readonly GetNearbyInteractablesUseCase getNearbyInteractablesUseCase;
+    private readonly TargetObjectUseCase targetObjectUseCase;
+    private readonly InteractWithTargetUseCase interactWithTargetUseCase;
+    private readonly MoveToEntityUseCase moveToEntityUseCase;
+    private readonly TeleportToAetheryteUseCase teleportToAetheryteUseCase;
+    private readonly SendAddonCallbackIntUseCase sendAddonCallbackIntUseCase;
+    private readonly SendAddonCallbackValuesUseCase sendAddonCallbackValuesUseCase;
     private readonly GetCurrentSettingsUseCase getCurrentSettingsUseCase;
     private readonly RecordAuditEventUseCase recordAuditEventUseCase;
 
@@ -26,6 +34,13 @@ public sealed class BridgeRequestDispatcher
         GetAddonListUseCase getAddonListUseCase,
         GetAddonTreeUseCase getAddonTreeUseCase,
         GetAddonStringsUseCase getAddonStringsUseCase,
+        GetNearbyInteractablesUseCase getNearbyInteractablesUseCase,
+        TargetObjectUseCase targetObjectUseCase,
+        InteractWithTargetUseCase interactWithTargetUseCase,
+        MoveToEntityUseCase moveToEntityUseCase,
+        TeleportToAetheryteUseCase teleportToAetheryteUseCase,
+        SendAddonCallbackIntUseCase sendAddonCallbackIntUseCase,
+        SendAddonCallbackValuesUseCase sendAddonCallbackValuesUseCase,
         GetCurrentSettingsUseCase getCurrentSettingsUseCase,
         RecordAuditEventUseCase recordAuditEventUseCase)
     {
@@ -36,6 +51,13 @@ public sealed class BridgeRequestDispatcher
         this.getAddonListUseCase = getAddonListUseCase;
         this.getAddonTreeUseCase = getAddonTreeUseCase;
         this.getAddonStringsUseCase = getAddonStringsUseCase;
+        this.getNearbyInteractablesUseCase = getNearbyInteractablesUseCase;
+        this.targetObjectUseCase = targetObjectUseCase;
+        this.interactWithTargetUseCase = interactWithTargetUseCase;
+        this.moveToEntityUseCase = moveToEntityUseCase;
+        this.teleportToAetheryteUseCase = teleportToAetheryteUseCase;
+        this.sendAddonCallbackIntUseCase = sendAddonCallbackIntUseCase;
+        this.sendAddonCallbackValuesUseCase = sendAddonCallbackValuesUseCase;
         this.getCurrentSettingsUseCase = getCurrentSettingsUseCase;
         this.recordAuditEventUseCase = recordAuditEventUseCase;
     }
@@ -98,6 +120,27 @@ public sealed class BridgeRequestDispatcher
                 BridgeRequestTypes.ReadAddonStringsResource => CreateQueryResponse(
                     request.RequestId,
                     BridgeContractMapper.ToResponse(await getAddonStringsUseCase.ExecuteForResourceAsync(ReadAddonName(request.Payload), cancellationToken).ConfigureAwait(false))),
+                BridgeRequestTypes.GetNearbyInteractables => CreateQueryResponse(
+                    request.RequestId,
+                    BridgeContractMapper.ToResponse(await ExecuteGetNearbyInteractablesAsync(request.Payload, cancellationToken).ConfigureAwait(false))),
+                BridgeRequestTypes.TargetObject => CreateQueryResponse(
+                    request.RequestId,
+                    BridgeContractMapper.ToResponse(await targetObjectUseCase.ExecuteAsync(ReadTargetObjectId(request.Payload), cancellationToken).ConfigureAwait(false))),
+                BridgeRequestTypes.InteractWithTarget => CreateQueryResponse(
+                    request.RequestId,
+                    BridgeContractMapper.ToResponse(await ExecuteInteractWithTargetAsync(request.Payload, cancellationToken).ConfigureAwait(false))),
+                BridgeRequestTypes.MoveToEntity => CreateQueryResponse(
+                    request.RequestId,
+                    BridgeContractMapper.ToResponse(await ExecuteMoveToEntityAsync(request.Payload, cancellationToken).ConfigureAwait(false))),
+                BridgeRequestTypes.TeleportToAetheryte => CreateQueryResponse(
+                    request.RequestId,
+                    BridgeContractMapper.ToResponse(await ExecuteTeleportToAetheryteAsync(request.Payload, cancellationToken).ConfigureAwait(false))),
+                BridgeRequestTypes.SendAddonCallbackInt => CreateQueryResponse(
+                    request.RequestId,
+                    BridgeContractMapper.ToResponse(await ExecuteSendAddonCallbackIntAsync(request.Payload, cancellationToken).ConfigureAwait(false))),
+                BridgeRequestTypes.SendAddonCallbackValues => CreateQueryResponse(
+                    request.RequestId,
+                    BridgeContractMapper.ToResponse(await ExecuteSendAddonCallbackValuesAsync(request.Payload, cancellationToken).ConfigureAwait(false))),
                 BridgeRequestTypes.GetCapabilityState => CreateCapabilityStateResponse(
                     request.RequestId,
                     BridgeContractMapper.ToResponse(await getCurrentSettingsUseCase.ExecuteAsync(cancellationToken).ConfigureAwait(false))),
@@ -142,6 +185,126 @@ public sealed class BridgeRequestDispatcher
         }
 
         return request.AddonName;
+    }
+
+    private async Task<DalamudMCP.Application.Common.QueryResult<DalamudMCP.Domain.Actions.NearbyInteractablesSnapshot>> ExecuteGetNearbyInteractablesAsync(
+        object? payload,
+        CancellationToken cancellationToken)
+    {
+        var request = BridgeJson.DeserializePayload<NearbyInteractablesRequest>(payload)
+            ?? new NearbyInteractablesRequest(null, null, false);
+        return await getNearbyInteractablesUseCase.ExecuteForToolAsync(
+            request.MaxDistance,
+            request.NameContains,
+            request.IncludePlayers,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static string ReadTargetObjectId(object? payload)
+    {
+        var request = BridgeJson.DeserializePayload<TargetObjectRequest>(payload);
+        if (request is null || string.IsNullOrWhiteSpace(request.GameObjectId))
+        {
+            throw new ArgumentException("GameObjectId is required.", nameof(payload));
+        }
+
+        return request.GameObjectId;
+    }
+
+    private async Task<DalamudMCP.Application.Common.QueryResult<DalamudMCP.Domain.Actions.InteractWithTargetResult>> ExecuteInteractWithTargetAsync(
+        object? payload,
+        CancellationToken cancellationToken)
+    {
+        var request = BridgeJson.DeserializePayload<InteractWithTargetRequest>(payload)
+            ?? new InteractWithTargetRequest(null, null);
+        return await interactWithTargetUseCase.ExecuteAsync(
+            request.ExpectedGameObjectId,
+            request.CheckLineOfSight ?? true,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<DalamudMCP.Application.Common.QueryResult<DalamudMCP.Domain.Actions.MoveToEntityResult>> ExecuteMoveToEntityAsync(
+        object? payload,
+        CancellationToken cancellationToken)
+    {
+        var request = ReadMoveToEntityRequest(payload);
+        return await moveToEntityUseCase.ExecuteAsync(
+            request.GameObjectId,
+            request.AllowFlight ?? false,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static MoveToEntityRequest ReadMoveToEntityRequest(object? payload)
+    {
+        var request = BridgeJson.DeserializePayload<MoveToEntityRequest>(payload);
+        if (request is null || string.IsNullOrWhiteSpace(request.GameObjectId))
+        {
+            throw new ArgumentException("GameObjectId is required.", nameof(payload));
+        }
+
+        return request;
+    }
+
+    private async Task<DalamudMCP.Application.Common.QueryResult<DalamudMCP.Domain.Actions.TeleportToAetheryteResult>> ExecuteTeleportToAetheryteAsync(
+        object? payload,
+        CancellationToken cancellationToken)
+    {
+        var request = ReadTeleportToAetheryteRequest(payload);
+        return await teleportToAetheryteUseCase.ExecuteAsync(request.Query, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static TeleportToAetheryteRequest ReadTeleportToAetheryteRequest(object? payload)
+    {
+        var request = BridgeJson.DeserializePayload<TeleportToAetheryteRequest>(payload);
+        if (request is null || string.IsNullOrWhiteSpace(request.Query))
+        {
+            throw new ArgumentException("Query is required.", nameof(payload));
+        }
+
+        return request;
+    }
+
+    private async Task<DalamudMCP.Application.Common.QueryResult<DalamudMCP.Domain.Actions.AddonCallbackIntResult>> ExecuteSendAddonCallbackIntAsync(
+        object? payload,
+        CancellationToken cancellationToken)
+    {
+        var request = ReadAddonCallbackIntRequest(payload);
+        return await sendAddonCallbackIntUseCase.ExecuteAsync(request.AddonName, request.Value, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static AddonCallbackIntRequest ReadAddonCallbackIntRequest(object? payload)
+    {
+        var request = BridgeJson.DeserializePayload<AddonCallbackIntRequest>(payload);
+        if (request is null || string.IsNullOrWhiteSpace(request.AddonName))
+        {
+            throw new ArgumentException("AddonName is required.", nameof(payload));
+        }
+
+        return request;
+    }
+
+    private async Task<DalamudMCP.Application.Common.QueryResult<DalamudMCP.Domain.Actions.AddonCallbackValuesResult>> ExecuteSendAddonCallbackValuesAsync(
+        object? payload,
+        CancellationToken cancellationToken)
+    {
+        var request = ReadAddonCallbackValuesRequest(payload);
+        return await sendAddonCallbackValuesUseCase.ExecuteAsync(request.AddonName, request.Values, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static AddonCallbackValuesRequest ReadAddonCallbackValuesRequest(object? payload)
+    {
+        var request = BridgeJson.DeserializePayload<AddonCallbackValuesRequest>(payload);
+        if (request is null || string.IsNullOrWhiteSpace(request.AddonName))
+        {
+            throw new ArgumentException("AddonName is required.", nameof(payload));
+        }
+
+        if (request.Values is null || request.Values.Length == 0)
+        {
+            throw new ArgumentException("At least one callback value is required.", nameof(payload));
+        }
+
+        return request;
     }
 
     private static BridgeResponseEnvelope CreateQueryResponse<TPayload>(string requestId, TPayload payload) =>

@@ -58,6 +58,13 @@ public sealed class McpRegistryConsistencyValidator
             nameof(AddonListToolHandler),
             nameof(AddonTreeToolHandler),
             nameof(AddonStringsToolHandler),
+            nameof(NearbyInteractablesToolHandler),
+            nameof(TargetObjectToolHandler),
+            nameof(InteractWithTargetToolHandler),
+            nameof(MoveToEntityToolHandler),
+            nameof(TeleportToAetheryteToolHandler),
+            nameof(AddonCallbackIntToolHandler),
+            nameof(AddonCallbackValuesToolHandler),
         ];
 
     private static IReadOnlyCollection<string> CreateDefaultProviderTypeNames() =>

@@ -1,5 +1,9 @@
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using DalamudMCP.Application.Services;
+using DalamudMCP.Application.UseCases.Settings;
+using DalamudMCP.Domain.Capabilities;
+using DalamudMCP.Domain.Policy;
 using DalamudMCP.Plugin.Configuration;
 using DalamudMCP.Plugin.Hosting;
 
@@ -7,19 +11,26 @@ namespace DalamudMCP.Plugin.Ui;
 
 public sealed class PluginConfigWindow
 {
-    private readonly PluginRuntimeOptions runtimeOptions;
+    private readonly PluginCompositionRoot compositionRoot;
     private readonly PluginUiConfigurationStore configurationStore;
     private readonly PluginHostController hostController;
+    private readonly UpdateExposurePolicyUseCase updateExposurePolicyUseCase;
+    private ExposurePolicy? policy;
+    private string? policyMessage;
     private bool isOpen;
 
     public PluginConfigWindow(
-        PluginRuntimeOptions runtimeOptions,
+        PluginCompositionRoot compositionRoot,
         PluginUiConfigurationStore configurationStore,
         PluginHostController hostController)
     {
-        this.runtimeOptions = runtimeOptions;
+        this.compositionRoot = compositionRoot;
         this.configurationStore = configurationStore;
         this.hostController = hostController;
+        updateExposurePolicyUseCase = new UpdateExposurePolicyUseCase(
+            compositionRoot.SettingsRepository,
+            compositionRoot.AuditLogWriter,
+            new SettingsMutationGuard(compositionRoot.CapabilityRegistry));
     }
 
     public void Open()
@@ -42,6 +53,7 @@ public sealed class PluginConfigWindow
         }
 
         var configuration = configurationStore.Current;
+        EnsurePolicyLoaded();
         var autoLaunchHttpServerOnLoad = configuration.AutoLaunchHttpServerOnLoad;
         if (ImGui.Checkbox("Auto-launch local HTTP MCP server on plugin load", ref autoLaunchHttpServerOnLoad))
         {
@@ -50,8 +62,8 @@ public sealed class PluginConfigWindow
 
         ImGui.Separator();
         ImGui.TextUnformatted("Bridge");
-        ImGui.TextWrapped($"Pipe name: {runtimeOptions.PipeName}");
-        ImGui.TextWrapped($"Policy file: {runtimeOptions.SettingsFilePath}");
+        ImGui.TextWrapped($"Pipe name: {compositionRoot.Options.PipeName}");
+        ImGui.TextWrapped($"Policy file: {compositionRoot.Options.SettingsFilePath}");
 
         ImGui.Separator();
         ImGui.TextUnformatted("Host");
@@ -103,6 +115,136 @@ public sealed class PluginConfigWindow
             hostController.Stop();
         }
 
+        DrawPolicySection();
+
         ImGui.End();
+    }
+
+    private void DrawPolicySection()
+    {
+        ImGui.Separator();
+        ImGui.TextUnformatted("Exposure Policy");
+
+        if (ImGui.Button("Reload Policy"))
+        {
+            ReloadPolicy();
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Enable Core Action Tools"))
+        {
+            ApplyCoreActionPolicy();
+        }
+
+        if (!string.IsNullOrWhiteSpace(policyMessage))
+        {
+            ImGui.TextWrapped(policyMessage);
+        }
+
+        if (policy is null)
+        {
+            ImGui.TextWrapped("Policy could not be loaded.");
+            return;
+        }
+
+        var observationProfileEnabled = policy.ObservationProfileEnabled;
+        if (ImGui.Checkbox("Observation Profile Enabled", ref observationProfileEnabled))
+        {
+            SavePolicy(policy.WithProfiles(observationProfileEnabled, policy.ActionProfileEnabled));
+        }
+
+        var actionProfileEnabled = policy.ActionProfileEnabled;
+        if (ImGui.Checkbox("Action Profile Enabled", ref actionProfileEnabled))
+        {
+            SavePolicy(policy.WithProfiles(policy.ObservationProfileEnabled, actionProfileEnabled));
+        }
+
+        if (ImGui.CollapsingHeader("Tools", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            foreach (var tool in GetKnownTools())
+            {
+                var enabled = policy.EnabledTools.Contains(tool.ToolName, StringComparer.OrdinalIgnoreCase);
+                var label = $"{tool.ToolName} [{tool.Profile}]";
+                if (ImGui.Checkbox(label, ref enabled))
+                {
+                    SavePolicy(enabled ? policy.EnableTool(tool.ToolName) : policy.DisableTool(tool.ToolName));
+                }
+            }
+        }
+    }
+
+    private void EnsurePolicyLoaded()
+    {
+        if (policy is not null)
+        {
+            return;
+        }
+
+        ReloadPolicy();
+    }
+
+    private void ReloadPolicy()
+    {
+        try
+        {
+            policy = compositionRoot.SettingsRepository.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
+            policyMessage = "Policy loaded.";
+        }
+        catch (Exception exception)
+        {
+            policyMessage = $"Failed to load policy: {exception.Message}";
+        }
+    }
+
+    private void ApplyCoreActionPolicy()
+    {
+        if (policy is null)
+        {
+            ReloadPolicy();
+        }
+
+        if (policy is null)
+        {
+            return;
+        }
+
+        var updated = policy
+            .EnableTool("get_session_status")
+            .EnableTool("get_player_context")
+            .EnableTool("get_nearby_interactables")
+            .EnableTool("target_object")
+            .EnableTool("interact_with_target")
+            .EnableTool("move_to_entity")
+            .EnableTool("teleport_to_aetheryte")
+            .EnableTool("send_addon_callback_int")
+            .EnableTool("send_addon_callback_values")
+            .WithProfiles(policy.ObservationProfileEnabled, actionProfileEnabled: true);
+        SavePolicy(updated);
+    }
+
+    private void SavePolicy(ExposurePolicy nextPolicy)
+    {
+        try
+        {
+            updateExposurePolicyUseCase.ExecuteAsync(nextPolicy, CancellationToken.None).GetAwaiter().GetResult();
+            policy = nextPolicy;
+            policyMessage = "Policy saved.";
+        }
+        catch (Exception exception)
+        {
+            policyMessage = $"Failed to save policy: {exception.Message}";
+        }
+    }
+
+    private IEnumerable<(string ToolName, ProfileType Profile)> GetKnownTools()
+    {
+        return compositionRoot.CapabilityRegistry.ToolBindings
+            .Join(
+                compositionRoot.CapabilityRegistry.Capabilities,
+                static binding => binding.CapabilityId.Value,
+                static capability => capability.Id.Value,
+                static (binding, capability) => (binding.ToolName, capability.Profile))
+            .OrderBy(static entry => entry.Profile)
+            .ThenBy(static entry => entry.ToolName, StringComparer.OrdinalIgnoreCase);
     }
 }

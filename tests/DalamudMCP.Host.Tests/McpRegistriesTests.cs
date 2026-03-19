@@ -13,6 +13,10 @@ public sealed class McpRegistriesTests
         Assert.Contains(registry.Tools, static tool => tool.ToolName == "get_session_status");
         Assert.Contains(registry.Tools, static tool => tool.ToolName == "get_player_context");
         Assert.Contains(registry.Tools, static tool => tool.ToolName == "get_addon_tree");
+        Assert.Contains(registry.Tools, static tool => tool.ToolName == "get_nearby_interactables");
+        Assert.Contains(registry.Tools, static tool => tool.ToolName == "target_object");
+        Assert.Contains(registry.Tools, static tool => tool.ToolName == "teleport_to_aetheryte");
+        Assert.Contains(registry.Tools, static tool => tool.ToolName == "send_addon_callback_values");
     }
 
     [Fact]

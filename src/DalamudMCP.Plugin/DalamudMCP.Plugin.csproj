@@ -3,10 +3,13 @@
     <RootNamespace>DalamudMCP.Plugin</RootNamespace>
     <AssemblyName>DalamudMCP</AssemblyName>
     <Version>0.1.0</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DalamudReferencePath Condition="'$(DalamudReferencePath)' == '' and Exists('$(AppData)\\XIVLauncher\\addon\\Hooks\\14.0.4.1-19-gd2be9ceb\\Dalamud.dll')">$(AppData)\XIVLauncher\addon\Hooks\14.0.4.1-19-gd2be9ceb\Dalamud.dll</DalamudReferencePath>
     <DalamudImGuiReferencePath Condition="'$(DalamudImGuiReferencePath)' == '' and Exists('$(AppData)\\XIVLauncher\\addon\\Hooks\\14.0.4.1-19-gd2be9ceb\\Dalamud.Bindings.ImGui.dll')">$(AppData)\XIVLauncher\addon\Hooks\14.0.4.1-19-gd2be9ceb\Dalamud.Bindings.ImGui.dll</DalamudImGuiReferencePath>
     <LuminaReferencePath Condition="'$(LuminaReferencePath)' == '' and Exists('$(AppData)\\XIVLauncher\\addon\\Hooks\\14.0.4.1-19-gd2be9ceb\\Lumina.dll')">$(AppData)\XIVLauncher\addon\Hooks\14.0.4.1-19-gd2be9ceb\Lumina.dll</LuminaReferencePath>
     <LuminaExcelReferencePath Condition="'$(LuminaExcelReferencePath)' == '' and Exists('$(AppData)\\XIVLauncher\\addon\\Hooks\\14.0.4.1-19-gd2be9ceb\\Lumina.Excel.dll')">$(AppData)\XIVLauncher\addon\Hooks\14.0.4.1-19-gd2be9ceb\Lumina.Excel.dll</LuminaExcelReferencePath>
+    <ClientStructsReferencePath Condition="'$(ClientStructsReferencePath)' == '' and Exists('$(AppData)\\XIVLauncher\\addon\\Hooks\\14.0.4.1-19-gd2be9ceb\\FFXIVClientStructs.dll')">$(AppData)\XIVLauncher\addon\Hooks\14.0.4.1-19-gd2be9ceb\FFXIVClientStructs.dll</ClientStructsReferencePath>
+    <InteropGeneratorRuntimeReferencePath Condition="'$(InteropGeneratorRuntimeReferencePath)' == '' and Exists('$(AppData)\\XIVLauncher\\addon\\Hooks\\14.0.4.1-19-gd2be9ceb\\InteropGenerator.Runtime.dll')">$(AppData)\XIVLauncher\addon\Hooks\14.0.4.1-19-gd2be9ceb\InteropGenerator.Runtime.dll</InteropGeneratorRuntimeReferencePath>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
   <ItemGroup>
@@ -34,9 +37,36 @@
       <HintPath>$(LuminaExcelReferencePath)</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="FFXIVClientStructs" Condition="Exists('$(ClientStructsReferencePath)')">
+      <HintPath>$(ClientStructsReferencePath)</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="InteropGenerator.Runtime" Condition="Exists('$(InteropGeneratorRuntimeReferencePath)')">
+      <HintPath>$(InteropGeneratorRuntimeReferencePath)</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
   <Target Name="EnsureDalamudReference" BeforeTargets="ResolveReferences">
     <Error Condition="!Exists('$(DalamudReferencePath)')"
            Text="Dalamud.dll was not found. Set the DalamudReferencePath MSBuild property or install a local Dalamud build under %APPDATA%\\XIVLauncher\\addon\\Hooks\\14.0.4.1-19-gd2be9ceb\\Dalamud.dll." />
+  </Target>
+  <Target Name="BundleHostOutput" AfterTargets="Build">
+    <PropertyGroup>
+      <BundledHostProject>$(MSBuildThisFileDirectory)..\DalamudMCP.Host\DalamudMCP.Host.csproj</BundledHostProject>
+      <BundledHostOutputDir>$(MSBuildThisFileDirectory)..\DalamudMCP.Host\bin\$(Configuration)\$(TargetFramework)\</BundledHostOutputDir>
+    </PropertyGroup>
+    <MSBuild Projects="$(BundledHostProject)"
+             Targets="Build"
+             Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework)" />
+    <ItemGroup>
+      <BundledHostFiles Include="$(BundledHostOutputDir)DalamudMCP.Host.dll" />
+      <BundledHostFiles Include="$(BundledHostOutputDir)DalamudMCP.Host.deps.json" />
+      <BundledHostFiles Include="$(BundledHostOutputDir)DalamudMCP.Host.runtimeconfig.json" />
+      <BundledHostFiles Include="$(BundledHostOutputDir)DalamudMCP.Host.pdb" Condition="Exists('$(BundledHostOutputDir)DalamudMCP.Host.pdb')" />
+      <BundledHostFiles Include="$(BundledHostOutputDir)DalamudMCP.Host.xml" Condition="Exists('$(BundledHostOutputDir)DalamudMCP.Host.xml')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BundledHostFiles)"
+          DestinationFolder="$(OutputPath)"
+          SkipUnchangedFiles="true" />
   </Target>
 </Project>

@@ -17,5 +17,12 @@ public static class BridgeRequestTypes
     public const string ReadAddonTreeResource = "ReadAddonTreeResource";
     public const string GetAddonStrings = "GetAddonStrings";
     public const string ReadAddonStringsResource = "ReadAddonStringsResource";
+    public const string GetNearbyInteractables = "GetNearbyInteractables";
+    public const string TargetObject = "TargetObject";
+    public const string InteractWithTarget = "InteractWithTarget";
+    public const string MoveToEntity = "MoveToEntity";
+    public const string TeleportToAetheryte = "TeleportToAetheryte";
+    public const string SendAddonCallbackInt = "SendAddonCallbackInt";
+    public const string SendAddonCallbackValues = "SendAddonCallbackValues";
     public const string GetCapabilityState = "GetCapabilityState";
 }

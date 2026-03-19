@@ -12,8 +12,14 @@ public sealed class KnownCapabilityRegistryTests
         Assert.Contains(registry.Capabilities, static capability => capability.Id.Value == "session.status");
         Assert.Contains(registry.Capabilities, static capability => capability.Id.Value == "player.context");
         Assert.Contains(registry.Capabilities, static capability => capability.Id.Value == "ui.addonTree");
+        Assert.Contains(registry.Capabilities, static capability => capability.Id.Value == "world.nearbyInteractables");
+        Assert.Contains(registry.Capabilities, static capability => capability.Id.Value == "world.targetObject");
+        Assert.Contains(registry.Capabilities, static capability => capability.Id.Value == "world.teleportToAetheryte");
         Assert.Contains(registry.ToolBindings, static binding => binding.ToolName == "get_player_context");
         Assert.Contains(registry.ToolBindings, static binding => binding.ToolName == "get_session_status");
+        Assert.Contains(registry.ToolBindings, static binding => binding.ToolName == "get_nearby_interactables");
+        Assert.Contains(registry.ToolBindings, static binding => binding.ToolName == "target_object");
+        Assert.Contains(registry.ToolBindings, static binding => binding.ToolName == "teleport_to_aetheryte");
         Assert.Contains(registry.ResourceBindings, static binding => binding.UriTemplate == "ffxiv://session/status");
         Assert.Contains(registry.ResourceBindings, static binding => binding.UriTemplate == "ffxiv://player/context");
         Assert.Contains(registry.ResourceBindings, static binding => binding.UriTemplate == "ffxiv://ui/addons");

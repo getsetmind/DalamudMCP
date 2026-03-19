@@ -4,6 +4,11 @@ public sealed class DependencyRulesTests
 {
     private static readonly string RepositoryRoot = FindRepositoryRoot();
 
+    static DependencyRulesTests()
+    {
+        AppDomain.CurrentDomain.AssemblyResolve += ResolveExternalAssembly;
+    }
+
     [Fact]
     public void Domain_DoesNotReferenceOuterAssemblies()
     {
@@ -44,8 +49,9 @@ public sealed class DependencyRulesTests
     [Fact]
     public void Plugin_DoesNotReferenceHost()
     {
+        var assembly = LoadProjectAssembly("DalamudMCP.Plugin", "DalamudMCP.dll");
         AssertDoesNotReference(
-            typeof(DalamudMCP.Plugin.PluginEntryPoint).Assembly,
+            assembly,
             "DalamudMCP.Host");
     }
 
@@ -89,7 +95,11 @@ public sealed class DependencyRulesTests
             allowedRootPrefixes: [],
             allowedDirectories:
             [
+                "Configuration",
+                "Hosting",
+                "Properties",
                 "Readers",
+                "Ui",
                 "UI",
                 "ViewModels",
                 "Views",
@@ -106,9 +116,11 @@ public sealed class DependencyRulesTests
             [
                 "HostProgram.cs",
                 "HostRuntimeOptions.cs",
+                "HostTransportKind.cs",
                 "PluginBridgeClient.cs",
                 "Program.cs",
                 "StdioTransportHost.cs",
+                "StreamableHttpTransportHost.cs",
             ],
             allowedRootPrefixes:
             [
@@ -272,5 +284,57 @@ public sealed class DependencyRulesTests
         }
 
         throw new InvalidOperationException("Could not locate the DalamudMCP repository root from the architecture test output directory.");
+    }
+
+    private static System.Reflection.Assembly LoadProjectAssembly(string projectName, string assemblyFileName)
+    {
+        var projectOutputDirectory = Path.Combine(RepositoryRoot, "src", projectName, "bin", "Debug", "net10.0");
+        var assemblyPath = Path.Combine(projectOutputDirectory, assemblyFileName);
+        if (!File.Exists(assemblyPath))
+        {
+            throw new FileNotFoundException($"Could not find assembly '{assemblyFileName}' in '{projectOutputDirectory}'.", assemblyPath);
+        }
+
+        return System.Reflection.Assembly.LoadFrom(assemblyPath);
+    }
+
+    private static System.Reflection.Assembly? ResolveExternalAssembly(object? sender, ResolveEventArgs args)
+    {
+        var assemblyName = new System.Reflection.AssemblyName(args.Name).Name;
+        if (string.IsNullOrWhiteSpace(assemblyName))
+        {
+            return null;
+        }
+
+        foreach (var candidateDirectory in EnumerateAssemblyProbeDirectories())
+        {
+            var candidatePath = Path.Combine(candidateDirectory, $"{assemblyName}.dll");
+            if (File.Exists(candidatePath))
+            {
+                return System.Reflection.Assembly.LoadFrom(candidatePath);
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> EnumerateAssemblyProbeDirectories()
+    {
+        yield return Path.Combine(RepositoryRoot, "src", "DalamudMCP.Plugin", "bin", "Debug", "net10.0");
+
+        var hooksRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "XIVLauncher",
+            "addon",
+            "Hooks");
+        if (!Directory.Exists(hooksRoot))
+        {
+            yield break;
+        }
+
+        foreach (var directory in Directory.EnumerateDirectories(hooksRoot).OrderByDescending(static path => path, StringComparer.OrdinalIgnoreCase))
+        {
+            yield return directory;
+        }
     }
 }

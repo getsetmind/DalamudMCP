@@ -109,10 +109,10 @@ public sealed class McpServerHost
                 schemaRegistry.GetRequired(tool.OutputSchemaId),
                 new McpToolAnnotations(
                     Title: tool.DisplayName,
-                    ReadOnlyHint: !tool.Experimental,
-                    DestructiveHint: false,
-                    IdempotentHint: !tool.Experimental,
-                    OpenWorldHint: false)))
+                    ReadOnlyHint: tool.Profile is not Domain.Capabilities.ProfileType.Action,
+                    DestructiveHint: tool.Profile is Domain.Capabilities.ProfileType.Action,
+                    IdempotentHint: tool.Profile is not Domain.Capabilities.ProfileType.Action,
+                    OpenWorldHint: tool.Profile is Domain.Capabilities.ProfileType.Action)))
             .ToArray();
 
         return new McpListToolsResult(page, McpPagination.CreateNextCursor(offset, take, visibleTools.Length));
@@ -217,9 +217,14 @@ public sealed class McpServerHost
         }
 
         var state = await capabilityStateProvider(cancellationToken).ConfigureAwait(false);
-        return state.ObservationProfileEnabled
-            ? state.EnabledTools.ToHashSet(StringComparer.OrdinalIgnoreCase)
-            : [];
+        return toolRegistry.Tools
+            .Where(tool =>
+                state.EnabledTools.Contains(tool.ToolName, StringComparer.OrdinalIgnoreCase)
+                && (tool.Profile is Domain.Capabilities.ProfileType.Action
+                    ? state.ActionProfileEnabled
+                    : state.ObservationProfileEnabled))
+            .Select(static tool => tool.ToolName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
     private async Task<HashSet<string>?> GetEnabledResourcesAsync(CancellationToken cancellationToken)

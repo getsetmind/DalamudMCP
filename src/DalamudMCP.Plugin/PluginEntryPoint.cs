@@ -26,7 +26,7 @@ public sealed class PluginEntryPoint : IDalamudPlugin, IAsyncDisposable
             new PluginHostPathResolver(
                 pluginInterface.AssemblyLocation.FullName,
                 CompositionRoot.Options.PipeName));
-        configWindow = new PluginConfigWindow(CompositionRoot.Options, configurationStore, hostController);
+        configWindow = new PluginConfigWindow(CompositionRoot, configurationStore, hostController);
         HookUi(pluginInterface);
 
         if (configurationStore.Current.AutoLaunchHttpServerOnLoad)

@@ -20,6 +20,7 @@ public sealed class McpToolRegistry
                 static (binding, capability) => new McpToolDefinition(
                     binding.ToolName,
                     binding.CapabilityId.Value,
+                    capability.Profile,
                     binding.InputSchemaId,
                     binding.OutputSchemaId,
                     binding.HandlerType,

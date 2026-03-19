@@ -125,6 +125,10 @@ public sealed class NamedPipeBridgeServer : IAsyncDisposable
             {
                 BridgeTrace.Write($"pipe.connection_timeout name={pipeName}");
             }
+            catch (InvalidOperationException exception) when (string.Equals(exception.Message, "Bridge stream closed unexpectedly.", StringComparison.Ordinal))
+            {
+                BridgeTrace.Write($"pipe.connection_closed name={pipeName}");
+            }
         }
         finally
         {
