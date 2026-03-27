@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DalamudMCP.Cli</RootNamespace>
+    <AssemblyName>DalamudMCP.Cli</AssemblyName>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="1.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DalamudMCP.Protocol\DalamudMCP.Protocol.csproj" />
+    <ProjectReference Include="..\DalamudMCP.Framework.Cli\DalamudMCP.Framework.Cli.csproj" />
+  </ItemGroup>
+</Project>

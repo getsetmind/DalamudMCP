@@ -1,5 +1,5 @@
 param(
-    [string]$Solution = 'DalamudMCP.sln',
+    [string]$Solution = 'DalamudMCP.slnx',
     [string]$OutputDirectory = 'artifacts/coverage',
     [switch]$NoBuild
 )

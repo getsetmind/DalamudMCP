@@ -1,77 +1,100 @@
 using System.Runtime.Versioning;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
+using DalamudMCP.Framework;
 using DalamudMCP.Plugin.Configuration;
-using DalamudMCP.Plugin.Hosting;
+using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Plugin.Ui;
+using DalamudMCP.Protocol;
 
 namespace DalamudMCP.Plugin;
 
 [SupportedOSPlatform("windows")]
-public sealed class PluginEntryPoint : IDalamudPlugin, IAsyncDisposable
+public sealed class PluginEntryPoint : IDalamudPlugin
 {
-    private readonly string name = "DalamudMCP";
-    private readonly IDalamudPluginInterface? pluginInterface;
-    private readonly PluginUiConfigurationStore? configurationStore;
-    private readonly PluginHostController? hostController;
-    private readonly PluginConfigWindow? configWindow;
+    private readonly PluginCompositionRoot compositionRoot;
+    private readonly IDalamudPluginInterface pluginInterface;
+    private readonly PluginConfigWindow configWindow;
+    private readonly PluginUiConfigurationStore configurationStore;
+    private readonly Hosting.PluginMcpServerController mcpServerController;
 
-    public PluginEntryPoint(IDalamudPluginInterface pluginInterface)
+    public PluginEntryPoint(
+        IDalamudPluginInterface pluginInterface,
+        IFramework framework,
+        IClientState clientState,
+        ICondition condition,
+        IObjectTable objectTable,
+        IPlayerState playerState,
+        IGameInventory gameInventory,
+        IFateTable fateTable,
+        IDataManager dataManager,
+        IGameGui gameGui,
+        ITargetManager targetManager)
     {
         ArgumentNullException.ThrowIfNull(pluginInterface);
+        ArgumentNullException.ThrowIfNull(framework);
+        ArgumentNullException.ThrowIfNull(clientState);
+        ArgumentNullException.ThrowIfNull(condition);
+        ArgumentNullException.ThrowIfNull(objectTable);
+        ArgumentNullException.ThrowIfNull(playerState);
+        ArgumentNullException.ThrowIfNull(gameInventory);
+        ArgumentNullException.ThrowIfNull(fateTable);
+        ArgumentNullException.ThrowIfNull(dataManager);
+        ArgumentNullException.ThrowIfNull(gameGui);
+        ArgumentNullException.ThrowIfNull(targetManager);
+
         this.pluginInterface = pluginInterface;
-        CompositionRoot = PluginCompositionRoot.CreateFromDalamud(pluginInterface);
-        CompositionRoot.StartAsync().GetAwaiter().GetResult();
         configurationStore = PluginUiConfigurationStore.Load(pluginInterface);
-        hostController = new PluginHostController(
-            new PluginHostPathResolver(
-                pluginInterface.AssemblyLocation.FullName,
-                CompositionRoot.Options.PipeName));
-        configWindow = new PluginConfigWindow(CompositionRoot, configurationStore, hostController);
+        compositionRoot = PluginCompositionRoot.CreateFromDalamud(
+            pluginInterface,
+            configurationStore,
+            framework,
+            clientState,
+            condition,
+            objectTable,
+            playerState,
+            gameInventory,
+            fateTable,
+            dataManager,
+            gameGui,
+            targetManager);
+        compositionRoot.StartAsync().GetAwaiter().GetResult();
+        ProtocolClientDiscovery.Write(
+            new ProtocolClientDiscoveryRecord(
+                compositionRoot.Options.PipeName,
+                Environment.ProcessId,
+                DateTimeOffset.UtcNow),
+            compositionRoot.Options.WorkingDirectory);
+        string pluginAssemblyPath = pluginInterface.AssemblyLocation.FullName;
+        IReadOnlyList<OperationDescriptor> operations = compositionRoot.GetRequiredService<IReadOnlyList<OperationDescriptor>>();
+        mcpServerController = new Hosting.PluginMcpServerController(
+            new Hosting.PluginCliPathResolver(
+                pluginAssemblyPath,
+                compositionRoot.Options.PipeName),
+            () => Hosting.PluginOperationExposurePolicy.GetExpectedMcpToolNames(
+                operations,
+                configurationStore.Current.EnableActionOperations,
+                configurationStore.Current.EnableUnsafeOperations));
+        configWindow = new PluginConfigWindow(
+            compositionRoot.Options,
+            compositionRoot.ProtocolServer,
+            configurationStore,
+            mcpServerController,
+            operations,
+            compositionRoot.GetServices<IPluginReaderStatus>());
+        if (configurationStore.Current.AutoStartHttpServerOnLoad)
+            _ = mcpServerController.Start();
         HookUi(pluginInterface);
-
-        if (configurationStore.Current.AutoLaunchHttpServerOnLoad)
-        {
-            hostController.TryStartHttpServer(configurationStore.Current.HttpPort);
-        }
     }
 
-    public PluginCompositionRoot? CompositionRoot { get; private set; }
-
-    public string Name => name;
-
-    public async Task InitializeAsync(string workingDirectory, CancellationToken cancellationToken = default)
-    {
-        CompositionRoot = PluginCompositionRoot.CreateDefault(workingDirectory);
-        await CompositionRoot.StartAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    public async Task StopAsync(CancellationToken cancellationToken = default)
-    {
-        if (pluginInterface is not null)
-        {
-            UnhookUi(pluginInterface);
-        }
-
-        hostController?.Dispose();
-
-        if (CompositionRoot is null)
-        {
-            return;
-        }
-
-        await CompositionRoot.StopAsync(cancellationToken).ConfigureAwait(false);
-        await CompositionRoot.DisposeAsync().ConfigureAwait(false);
-        CompositionRoot = null;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await StopAsync().ConfigureAwait(false);
-    }
+    public string Name { get; } = "DalamudMCP";
 
     public void Dispose()
     {
-        StopAsync().GetAwaiter().GetResult();
+        UnhookUi(pluginInterface);
+        mcpServerController.Dispose();
+        ProtocolClientDiscovery.DeleteIfMatches(compositionRoot.Options.PipeName, compositionRoot.Options.WorkingDirectory);
+        compositionRoot.DisposeAsync().AsTask().GetAwaiter().GetResult();
         GC.SuppressFinalize(this);
     }
 
@@ -89,11 +112,12 @@ public sealed class PluginEntryPoint : IDalamudPlugin, IAsyncDisposable
 
     private void DrawConfigUi()
     {
-        configWindow?.Draw();
+        configWindow.Draw();
     }
 
     private void OpenConfigUi()
     {
-        configWindow?.Open();
+        configWindow.Open();
     }
+
 }

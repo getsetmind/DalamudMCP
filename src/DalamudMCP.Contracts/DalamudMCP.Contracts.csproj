@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <RootNamespace>DalamudMCP.Contracts</RootNamespace>
-    <AssemblyName>DalamudMCP.Contracts</AssemblyName>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\DalamudMCP.Domain\DalamudMCP.Domain.csproj" />
-  </ItemGroup>
-</Project>

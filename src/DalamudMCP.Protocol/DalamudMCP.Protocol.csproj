@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DalamudMCP.Protocol</RootNamespace>
+    <AssemblyName>DalamudMCP.Protocol</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MemoryPack" Version="1.21.4" />
+  </ItemGroup>
+</Project>

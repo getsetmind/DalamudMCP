@@ -4,9 +4,11 @@ namespace DalamudMCP.Plugin.Configuration;
 
 public sealed class PluginUiConfiguration : IPluginConfiguration
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 3;
 
-    public bool AutoLaunchHttpServerOnLoad { get; set; }
+    public bool AutoStartHttpServerOnLoad { get; set; }
 
-    public int HttpPort { get; set; } = 38473;
+    public bool EnableActionOperations { get; set; }
+
+    public bool EnableUnsafeOperations { get; set; }
 }

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DalamudMCP.Framework.Mcp</RootNamespace>
+    <AssemblyName>DalamudMCP.Framework.Mcp</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="1.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DalamudMCP.Framework\DalamudMCP.Framework.csproj" />
+  </ItemGroup>
+</Project>
+

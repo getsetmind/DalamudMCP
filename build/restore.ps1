@@ -1,5 +1,5 @@
 param(
-    [string]$Solution = 'DalamudMCP.sln'
+    [string]$Solution = 'DalamudMCP.slnx'
 )
 
 Set-StrictMode -Version Latest
@@ -13,6 +13,13 @@ try {
     & $dotnet restore $Solution
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
+    }
+
+    if (Test-Path (Join-Path $root '.config\dotnet-tools.json')) {
+        & $dotnet tool restore
+        if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+        }
     }
 }
 finally {

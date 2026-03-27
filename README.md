@@ -1,178 +1,162 @@
 # DalamudMCP
 
-`DalamudMCP` is a local Model Context Protocol bridge for FFXIV built as a `Dalamud` plugin plus a companion host process.
+`DalamudMCP` exposes live FFXIV state from a Dalamud plugin to both a local CLI and MCP clients.
 
-The project keeps game-facing concerns inside the plugin, exposes MCP transports from a separate host, and applies an explicit capability policy before any tool or resource is surfaced.
+The current codebase is built around:
 
-## What works today
+- one handwritten operation file per tool
+- the same operation definition drives both CLI and MCP
+- the plugin owns live game execution
+- the CLI and MCP layers talk to the plugin over a local named pipe
 
-- `Dalamud` plugin loading on API 14
-- local named-pipe bridge between plugin and host
-- MCP `stdio` host
-- MCP `Streamable HTTP` host
-- plugin settings UI for launching the host
-- capability policy and audit logging
-- live `get_session_status`
-- live `get_player_context`
-- initial live `get_duty_context`
-- initial live `get_addon_list`
-- initial addon root / `AtkValues` inspection for tree and strings
+## What You Get
 
-## Current shape
+- direct CLI commands such as `player context` and `inventory summary`
+- MCP over `stdio` with `serve mcp`
+- MCP over local HTTP with `serve http`
+- plugin auto-discovery so normal CLI usage does not need a manual pipe name
+- a plugin settings window that shows runtime health and can start the bundled HTTP server
 
-```text
-FFXIV + Dalamud Plugin
-        |
-        | named pipe
-        v
-DalamudMCP.Host
-  |- stdio MCP
-  |- Streamable HTTP MCP
-        |
-        v
-MCP clients
-  |- Codex
-  |- other local MCP-capable tools
-```
+## Safety Defaults
 
-## Repository layout
+`DalamudMCP` is observation-first.
 
-- `src/DalamudMCP.Domain`
-  - domain model, capability metadata, snapshots, session model
-- `src/DalamudMCP.Application`
-  - use cases, ports, policy evaluation, freshness logic
-- `src/DalamudMCP.Contracts`
-  - bridge contracts and serialization helpers
-- `src/DalamudMCP.Infrastructure`
-  - settings, audit, bridge transport, clock, file persistence
-- `src/DalamudMCP.Plugin`
-  - `Dalamud` plugin entry point, settings UI, host launcher, live readers
-- `src/DalamudMCP.Host`
-  - MCP host, tool/resource registries, stdio and HTTP transports
-- `tests`
-  - unit, integration, plugin, host, and architecture tests
-- `docs`
-  - architecture notes, ADRs, capability specs, implementation planning
-- `build`
-  - restore, build, test, format, smoke-check, and quality scripts
+- observation tools are enabled by default
+- action tools are default-off until you enable them in the plugin UI
+- unsafe integration tools are default-off and hidden behind a separate developer toggle
 
-## Implemented MCP surface
+This is intentional. The public surface should stay conservative unless you explicitly widen it.
 
-Tools currently available when enabled by policy:
+## Current Tool Surface
 
-- `get_session_status`
-- `get_player_context`
-- `get_duty_context`
-- `get_addon_list`
-- `get_addon_tree`
-- `get_addon_strings`
+Observation tools:
 
-Resources currently available when enabled by policy:
+- `session.status`
+- `player.context`
+- `duty.context`
+- `inventory.summary`
+- `addon.list`
+- `addon.tree`
+- `addon.strings`
+- `fate.context`
+- `nearby.interactables`
+- `quest.status`
+- `quest.available`
+- `quest.current-objective`
+- `game.screenshot`
 
-- `ffxiv://session/status`
-- `ffxiv://player/context`
-- `ffxiv://duty/context`
-- `ffxiv://ui/addons`
-- `ffxiv://ui/addon/{addonName}/tree`
-- `ffxiv://ui/addon/{addonName}/strings`
+Action tools:
 
-## Local setup
+- `target.object`
+- `interact.with.target`
+- `move.to.entity`
+- `move.to.nearby.interactable`
+- `teleport.to.aetheryte`
+- `duty.action`
+- `addon.input`
+- `addon.event`
+- `addon.callback.values`
+- `addon.select.menu-item`
 
-### Prerequisites
+Developer-only unsafe tool:
 
-- Windows
-- FFXIV running through `XIVLauncher`
-- local `Dalamud` install under `%APPDATA%\XIVLauncher\addon\Hooks\...`
-- `.NET 10.0.201` SDK available locally
+- `unsafe.invoke.plugin-ipc`
 
-### Build
+The handwritten truth source for these operations lives under [`src/DalamudMCP.Plugin/Operations`](./src/DalamudMCP.Plugin/Operations).
+
+## Install And Run
+
+### 1. Build
 
 ```powershell
-Set-Location C:\Users\user\Documents\GitHub\DalamudMCP
-dotnet build .\DalamudMCP.sln --no-restore
+.\build\restore.ps1
+.\build\build.ps1 -NoRestore
 ```
 
-### Test
+### 2. Install The Plugin
+
+The active plugin is:
+
+- [`src/DalamudMCP.Plugin`](./src/DalamudMCP.Plugin)
+
+Build output:
+
+- [`src/DalamudMCP.Plugin/bin/Debug/net10.0/DalamudMCP.dll`](./src/DalamudMCP.Plugin/bin/Debug/net10.0/DalamudMCP.dll)
+- [`src/DalamudMCP.Plugin/bin/Debug/net10.0/DalamudMCP.json`](./src/DalamudMCP.Plugin/bin/Debug/net10.0/DalamudMCP.json)
+
+Load that plugin in Dalamud, then open its configuration window.
+
+### 3. Try The CLI
 
 ```powershell
-Set-Location C:\Users\user\Documents\GitHub\DalamudMCP
-dotnet test --project .\tests\DalamudMCP.Plugin.Tests\DalamudMCP.Plugin.Tests.csproj
+dotnet run --project .\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj -- player context
+dotnet run --project .\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj -- session status --json
+dotnet run --project .\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj -- inventory summary
 ```
 
-### Format / verify
+Normal CLI use auto-discovers the active plugin instance from `active-instance.json`.
+
+`--pipe <name>` is still supported as an advanced override for debugging or multi-instance scenarios.
+
+### 4. Run MCP
+
+`stdio` MCP:
 
 ```powershell
-Set-Location C:\Users\user\Documents\GitHub\DalamudMCP
-dotnet format .\DalamudMCP.sln --verify-no-changes
+dotnet run --project .\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj -- serve mcp
 ```
 
-## Running the plugin
+Local HTTP MCP:
 
-Plugin output:
+```powershell
+dotnet run --project .\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj -- serve http --port 38473
+```
 
-- [DalamudMCP.dll](C:\Users\user\Documents\GitHub\DalamudMCP\src\DalamudMCP.Plugin\bin\Debug\net10.0\DalamudMCP.dll)
-- [DalamudMCP.json](C:\Users\user\Documents\GitHub\DalamudMCP\src\DalamudMCP.Plugin\bin\Debug\net10.0\DalamudMCP.json)
-
-Once loaded in `Dalamud`, open the plugin settings and use one of:
-
-- `Start Host Console`
-- `Start Local HTTP Server`
-
-The HTTP host defaults to:
+Default endpoint:
 
 - `http://127.0.0.1:38473/mcp`
 
-## Codex integration
+The plugin UI can also start and stop the bundled HTTP MCP server for you.
 
-Example `Codex` MCP config:
+## Optional Integrations
 
-```toml
-[mcp_servers.DalamudMCP]
-url = "http://127.0.0.1:38473/mcp"
+When compatible plugins are installed, `DalamudMCP` can use them behind existing high-level tools.
+
+- `teleport.to.aetheryte` can fall back to `Lifestream` for local aethernet travel
+- movement operations can use `vnavmesh` when available
+
+These integrations stay behind normal high-level tools by default. Raw integration escape hatches remain developer-only.
+
+## Build And Test
+
+Build:
+
+```powershell
+.\build\build.ps1 -NoRestore
 ```
 
-Once the local HTTP host is running, `Codex` can call the enabled tools directly.
+Full test run:
 
-## Policy files
+```powershell
+.\build\test.ps1 -NoBuild
+```
 
-Plugin policy storage:
+The active solution is [`DalamudMCP.slnx`](./DalamudMCP.slnx).
 
-- [policy.json](C:\Users\user\AppData\Roaming\XIVLauncher\pluginConfigs\DalamudMCP\settings\policy.json)
+## Repository Layout
 
-Audit log:
+Active projects:
 
-- `C:\Users\user\AppData\Roaming\XIVLauncher\pluginConfigs\DalamudMCP\audit\audit.log`
+- [`src/DalamudMCP.Framework`](./src/DalamudMCP.Framework)
+- [`src/DalamudMCP.Framework.Cli`](./src/DalamudMCP.Framework.Cli)
+- [`src/DalamudMCP.Framework.Generators`](./src/DalamudMCP.Framework.Generators)
+- [`src/DalamudMCP.Framework.Mcp`](./src/DalamudMCP.Framework.Mcp)
+- [`src/DalamudMCP.Protocol`](./src/DalamudMCP.Protocol)
+- [`src/DalamudMCP.Cli`](./src/DalamudMCP.Cli)
+- [`src/DalamudMCP.Plugin`](./src/DalamudMCP.Plugin)
 
-## Verification status
+## Further Reading
 
-Verified in a live local environment:
-
-- plugin loads in `Dalamud`
-- host can be launched from the plugin UI
-- HTTP MCP endpoint responds
-- `get_session_status` returns live bridge state
-- `get_player_context` returns live player data
-
-Most recent verified live result included:
-
-- character: `Garume Garumu`
-- world: `Anima`
-- class job: `Dancer`
-
-## Known limitations
-
-- `duty_context` is still coarse and territory-driven
-- `addon_tree` currently exposes a shallow root snapshot, not a full native node walk
-- `addon_strings` currently uses addon `AtkValues`, not full `StringArrayData` extraction
-- inventory reader is still placeholder
-- action profile is still designed but not implemented
-- transport and plugin are local-only by design
-
-## Design references
-
-- [architecture.md](C:\Users\user\Documents\GitHub\DalamudMCP\docs\architecture.md)
-- [clean-architecture.md](C:\Users\user\Documents\GitHub\DalamudMCP\docs\clean-architecture.md)
-- [observation-action-architecture.md](C:\Users\user\Documents\GitHub\DalamudMCP\docs\observation-action-architecture.md)
-- [tool-extension-guideline.md](C:\Users\user\Documents\GitHub\DalamudMCP\docs\tool-extension-guideline.md)
-- [hard-deny-list-spec.md](C:\Users\user\Documents\GitHub\DalamudMCP\docs\hard-deny-list-spec.md)
-- [Task.md](C:\Users\user\Documents\GitHub\DalamudMCP\Task.md)
+- [`docs/README.md`](./docs/README.md)
+- [`docs/dalamudmcp-rearchitecture-proposal-2026-03-26.md`](./docs/dalamudmcp-rearchitecture-proposal-2026-03-26.md)
+- [`docs/remote-product-checklist-2026-03-26.md`](./docs/remote-product-checklist-2026-03-26.md)

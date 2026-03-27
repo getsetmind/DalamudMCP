@@ -1,5 +1,5 @@
 param(
-    [string]$Solution = 'DalamudMCP.sln',
+    [string]$Solution = 'DalamudMCP.slnx',
     [switch]$NoBuild
 )
 
@@ -11,21 +11,26 @@ $root = Split-Path -Parent $PSScriptRoot
 $dotnet = Get-DotNetCommand -RepositoryRoot $root
 Push-Location $root
 try {
-    $arguments = @('test')
-    if ([System.IO.Path]::GetExtension($Solution) -eq '.sln') {
-        $arguments += @('--solution', $Solution)
+    $extension = [System.IO.Path]::GetExtension($Solution)
+    if ($extension -eq '.csproj') {
+        $testProjects = @((Resolve-Path $Solution).Path)
     }
     else {
-        $arguments += $Solution
+        $testProjects = Get-ChildItem -Path (Join-Path $root 'tests') -Filter '*.csproj' -Recurse |
+            Sort-Object FullName |
+            ForEach-Object FullName
     }
 
-    if ($NoBuild) {
-        $arguments += '--no-build'
-    }
+    foreach ($testProject in $testProjects) {
+        $arguments = @('test', '--project', $testProject)
+        if ($NoBuild) {
+            $arguments += '--no-build'
+        }
 
-    & $dotnet @arguments
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
+        & $dotnet @arguments
+        if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+        }
     }
 }
 finally {

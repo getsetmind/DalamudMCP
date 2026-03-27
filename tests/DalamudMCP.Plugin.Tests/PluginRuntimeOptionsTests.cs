@@ -3,28 +3,21 @@ namespace DalamudMCP.Plugin.Tests;
 public sealed class PluginRuntimeOptionsTests
 {
     [Fact]
-    public void CreateDefault_UsesProvidedWorkingDirectory()
+    public void CreateDefault_generates_unique_instance_scoped_pipe_name()
     {
-        var workingDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        PluginRuntimeOptions first = PluginRuntimeOptions.CreateDefault();
+        PluginRuntimeOptions second = PluginRuntimeOptions.CreateDefault();
 
-        var options = PluginRuntimeOptions.CreateDefault(workingDirectory, "DalamudMCP.TestPipe");
-
-        Assert.Equal(Path.GetFullPath(workingDirectory), options.WorkingDirectory);
-        Assert.Equal("DalamudMCP.TestPipe", options.PipeName);
-        Assert.Equal(Path.Combine(Path.GetFullPath(workingDirectory), "settings", "policy.json"), options.SettingsFilePath);
-        Assert.Equal(Path.Combine(Path.GetFullPath(workingDirectory), "logs", "audit.log"), options.AuditLogFilePath);
+        Assert.StartsWith($"DalamudMCP.{Environment.ProcessId}.", first.PipeName, StringComparison.Ordinal);
+        Assert.StartsWith($"DalamudMCP.{Environment.ProcessId}.", second.PipeName, StringComparison.Ordinal);
+        Assert.NotEqual(first.PipeName, second.PipeName);
     }
 
     [Fact]
-    public void CreateDefault_UsesLocalApplicationData_WhenWorkingDirectoryIsMissing()
+    public void CreateDefault_preserves_explicit_pipe_name()
     {
-        var options = PluginRuntimeOptions.CreateDefault();
-        var expectedRoot = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create),
-            "DalamudMCP");
+        PluginRuntimeOptions options = PluginRuntimeOptions.CreateDefault(pipeName: "DalamudMCP.custom");
 
-        Assert.Equal(expectedRoot, options.WorkingDirectory);
-        Assert.Equal(Path.Combine(expectedRoot, "settings", "policy.json"), options.SettingsFilePath);
-        Assert.Equal(Path.Combine(expectedRoot, "logs", "audit.log"), options.AuditLogFilePath);
+        Assert.Equal("DalamudMCP.custom", options.PipeName);
     }
 }

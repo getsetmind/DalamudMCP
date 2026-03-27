@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>DalamudMCP.Protocol.Tests</RootNamespace>
+    <AssemblyName>DalamudMCP.Protocol.Tests</AssemblyName>
+    <IsDalamudMcpTestProject>true</IsDalamudMcpTestProject>
+    <OutputType>Exe</OutputType>
+    <CoverageThreshold>90</CoverageThreshold>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2" Version="3.2.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DalamudMCP.Plugin\DalamudMCP.Plugin.csproj" />
+    <ProjectReference Include="..\..\src\DalamudMCP.Protocol\DalamudMCP.Protocol.csproj" />
+  </ItemGroup>
+</Project>

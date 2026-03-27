@@ -1,6 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <RootNamespace>DalamudMCP.Domain</RootNamespace>
-    <AssemblyName>DalamudMCP.Domain</AssemblyName>
-  </PropertyGroup>
-</Project>
