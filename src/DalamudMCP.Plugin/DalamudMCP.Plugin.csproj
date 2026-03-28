@@ -29,4 +29,13 @@
           DestinationFiles="@(BundledCliFiles->'$(TargetDir)server\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
   </Target>
+  <Target Name="CopyPackageNotices" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
+    <ItemGroup>
+      <PackageNoticeFiles Include="$(MSBuildProjectDirectory)\..\..\LICENSE" />
+      <PackageNoticeFiles Include="$(MSBuildProjectDirectory)\..\..\THIRD_PARTY_NOTICES.md" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PackageNoticeFiles)"
+          DestinationFolder="$(TargetDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
