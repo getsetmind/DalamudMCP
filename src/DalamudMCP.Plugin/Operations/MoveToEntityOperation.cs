@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.Versioning;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
-using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using DalamudMCP.Framework;
 using DalamudMCP.Protocol;

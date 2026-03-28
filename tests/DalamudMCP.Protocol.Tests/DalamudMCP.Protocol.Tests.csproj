@@ -13,7 +13,6 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DalamudMCP.Plugin\DalamudMCP.Plugin.csproj" />
     <ProjectReference Include="..\..\src\DalamudMCP.Protocol\DalamudMCP.Protocol.csproj" />
   </ItemGroup>
 </Project>

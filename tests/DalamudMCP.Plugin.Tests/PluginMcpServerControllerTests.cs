@@ -1,5 +1,5 @@
-using DalamudMCP.Plugin.Hosting;
 using System.Text.Json;
+using DalamudMCP.Plugin.Hosting;
 
 namespace DalamudMCP.Plugin.Tests;
 

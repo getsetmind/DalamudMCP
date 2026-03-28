@@ -3,18 +3,13 @@
     <RootNamespace>DalamudMCP.Plugin.Tests</RootNamespace>
     <AssemblyName>DalamudMCP.Plugin.Tests</AssemblyName>
     <IsDalamudMcpTestProject>true</IsDalamudMcpTestProject>
+    <TargetFramework>net10.0-windows7.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <CoverageThreshold>90</CoverageThreshold>
-    <DalamudHooksBasePath>$(AppData)\XIVLauncher\addon\Hooks</DalamudHooksBasePath>
-    <DalamudHooksDirectory Condition="'$(DalamudHooksDirectory)' == '' and Exists('$(DalamudHooksBasePath)\14.0.4.2\Dalamud.dll')">$(DalamudHooksBasePath)\14.0.4.2</DalamudHooksDirectory>
-    <DalamudHooksDirectory Condition="'$(DalamudHooksDirectory)' == '' and Exists('$(DalamudHooksBasePath)\dev\Dalamud.dll')">$(DalamudHooksBasePath)\dev</DalamudHooksDirectory>
-    <DalamudHooksDirectory Condition="'$(DalamudHooksDirectory)' == '' and Exists('$(DalamudHooksBasePath)\14.0.4.1-19-gd2be9ceb\Dalamud.dll')">$(DalamudHooksBasePath)\14.0.4.1-19-gd2be9ceb</DalamudHooksDirectory>
-    <DalamudReferencePath Condition="'$(DalamudReferencePath)' == '' and Exists('$(DalamudHooksDirectory)\Dalamud.dll')">$(DalamudHooksDirectory)\Dalamud.dll</DalamudReferencePath>
-    <DalamudImGuiReferencePath Condition="'$(DalamudImGuiReferencePath)' == '' and Exists('$(DalamudHooksDirectory)\Dalamud.Bindings.ImGui.dll')">$(DalamudHooksDirectory)\Dalamud.Bindings.ImGui.dll</DalamudImGuiReferencePath>
-    <LuminaReferencePath Condition="'$(LuminaReferencePath)' == '' and Exists('$(DalamudHooksDirectory)\Lumina.dll')">$(DalamudHooksDirectory)\Lumina.dll</LuminaReferencePath>
-    <LuminaExcelReferencePath Condition="'$(LuminaExcelReferencePath)' == '' and Exists('$(DalamudHooksDirectory)\Lumina.Excel.dll')">$(DalamudHooksDirectory)\Lumina.Excel.dll</LuminaExcelReferencePath>
-    <ClientStructsReferencePath Condition="'$(ClientStructsReferencePath)' == '' and Exists('$(DalamudHooksDirectory)\FFXIVClientStructs.dll')">$(DalamudHooksDirectory)\FFXIVClientStructs.dll</ClientStructsReferencePath>
-    <InteropGeneratorRuntimeReferencePath Condition="'$(InteropGeneratorRuntimeReferencePath)' == '' and Exists('$(DalamudHooksDirectory)\InteropGenerator.Runtime.dll')">$(DalamudHooksDirectory)\InteropGenerator.Runtime.dll</InteropGeneratorRuntimeReferencePath>
+    <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+    <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('Linux'))">$(HOME)/.xlcore/dalamud/Hooks/dev/</DalamudLibPath>
+    <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">$(HOME)/Library/Application Support/XIV on Mac/dalamud/Hooks/dev/</DalamudLibPath>
+    <DalamudLibPath Condition="'$(DALAMUD_HOME)' != ''">$(DALAMUD_HOME)\</DalamudLibPath>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
@@ -28,29 +23,15 @@
     <ProjectReference Include="..\..\src\DalamudMCP.Plugin\DalamudMCP.Plugin.csproj" />
     <ProjectReference Include="..\..\src\DalamudMCP.Protocol\DalamudMCP.Protocol.csproj" />
   </ItemGroup>
-  <ItemGroup Condition="Exists('$(DalamudReferencePath)')">
-    <Content Include="$(DalamudReferencePath)"
-             Link="Dalamud.dll"
-             CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="$(DalamudImGuiReferencePath)"
-             Condition="Exists('$(DalamudImGuiReferencePath)')"
-             Link="Dalamud.Bindings.ImGui.dll"
-             CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="$(LuminaReferencePath)"
-             Condition="Exists('$(LuminaReferencePath)')"
-             Link="Lumina.dll"
-             CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="$(LuminaExcelReferencePath)"
-             Condition="Exists('$(LuminaExcelReferencePath)')"
-             Link="Lumina.Excel.dll"
-             CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="$(ClientStructsReferencePath)"
-             Condition="Exists('$(ClientStructsReferencePath)')"
-             Link="FFXIVClientStructs.dll"
-             CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="$(InteropGeneratorRuntimeReferencePath)"
-             Condition="Exists('$(InteropGeneratorRuntimeReferencePath)')"
-             Link="InteropGenerator.Runtime.dll"
-             CopyToOutputDirectory="PreserveNewest" />
+  <ItemGroup Condition="Exists('$(DalamudLibPath)Dalamud.dll')">
+    <Content Include="$(DalamudLibPath)Dalamud.dll" Link="Dalamud.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(DalamudLibPath)Dalamud.Bindings.ImGui.dll" Condition="Exists('$(DalamudLibPath)Dalamud.Bindings.ImGui.dll')" Link="Dalamud.Bindings.ImGui.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(DalamudLibPath)Lumina.dll" Condition="Exists('$(DalamudLibPath)Lumina.dll')" Link="Lumina.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(DalamudLibPath)Lumina.Excel.dll" Condition="Exists('$(DalamudLibPath)Lumina.Excel.dll')" Link="Lumina.Excel.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(DalamudLibPath)FFXIVClientStructs.dll" Condition="Exists('$(DalamudLibPath)FFXIVClientStructs.dll')" Link="FFXIVClientStructs.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(DalamudLibPath)InteropGenerator.Runtime.dll" Condition="Exists('$(DalamudLibPath)InteropGenerator.Runtime.dll')" Link="InteropGenerator.Runtime.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(DalamudLibPath)Newtonsoft.Json.dll" Condition="Exists('$(DalamudLibPath)Newtonsoft.Json.dll')" Link="Newtonsoft.Json.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(DalamudLibPath)Serilog.dll" Condition="Exists('$(DalamudLibPath)Serilog.dll')" Link="Serilog.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(DalamudLibPath)Microsoft.Extensions.ObjectPool.dll" Condition="Exists('$(DalamudLibPath)Microsoft.Extensions.ObjectPool.dll')" Link="Microsoft.Extensions.ObjectPool.dll" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

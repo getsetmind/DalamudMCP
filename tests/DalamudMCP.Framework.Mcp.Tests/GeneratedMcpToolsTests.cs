@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
-using ModelContextProtocol.Server;
 using DalamudMCP.Framework.Generated;
 using DalamudMCP.Framework.Mcp.Tests.Samples;
+using Microsoft.Extensions.DependencyInjection;
+using ModelContextProtocol.Server;
 
 namespace DalamudMCP.Framework.Mcp.Tests;
 

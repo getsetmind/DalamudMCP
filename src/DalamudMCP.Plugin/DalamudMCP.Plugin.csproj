@@ -1,20 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Dalamud.NET.Sdk/14.0.2">
   <PropertyGroup>
     <RootNamespace>DalamudMCP.Plugin</RootNamespace>
     <AssemblyName>DalamudMCP</AssemblyName>
     <Version>0.2.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <DalamudHooksBasePath>$(AppData)\XIVLauncher\addon\Hooks</DalamudHooksBasePath>
-    <DalamudHooksDirectory Condition="'$(DalamudHooksDirectory)' == '' and Exists('$(DalamudHooksBasePath)\14.0.4.2\Dalamud.dll')">$(DalamudHooksBasePath)\14.0.4.2</DalamudHooksDirectory>
-    <DalamudHooksDirectory Condition="'$(DalamudHooksDirectory)' == '' and Exists('$(DalamudHooksBasePath)\dev\Dalamud.dll')">$(DalamudHooksBasePath)\dev</DalamudHooksDirectory>
-    <DalamudHooksDirectory Condition="'$(DalamudHooksDirectory)' == '' and Exists('$(DalamudHooksBasePath)\14.0.4.1-19-gd2be9ceb\Dalamud.dll')">$(DalamudHooksBasePath)\14.0.4.1-19-gd2be9ceb</DalamudHooksDirectory>
-    <DalamudReferencePath Condition="'$(DalamudReferencePath)' == '' and Exists('$(DalamudHooksDirectory)\Dalamud.dll')">$(DalamudHooksDirectory)\Dalamud.dll</DalamudReferencePath>
-    <DalamudImGuiReferencePath Condition="'$(DalamudImGuiReferencePath)' == '' and Exists('$(DalamudHooksDirectory)\Dalamud.Bindings.ImGui.dll')">$(DalamudHooksDirectory)\Dalamud.Bindings.ImGui.dll</DalamudImGuiReferencePath>
-    <LuminaReferencePath Condition="'$(LuminaReferencePath)' == '' and Exists('$(DalamudHooksDirectory)\Lumina.dll')">$(DalamudHooksDirectory)\Lumina.dll</LuminaReferencePath>
-    <LuminaExcelReferencePath Condition="'$(LuminaExcelReferencePath)' == '' and Exists('$(DalamudHooksDirectory)\Lumina.Excel.dll')">$(DalamudHooksDirectory)\Lumina.Excel.dll</LuminaExcelReferencePath>
-    <ClientStructsReferencePath Condition="'$(ClientStructsReferencePath)' == '' and Exists('$(DalamudHooksDirectory)\FFXIVClientStructs.dll')">$(DalamudHooksDirectory)\FFXIVClientStructs.dll</ClientStructsReferencePath>
-    <InteropGeneratorRuntimeReferencePath Condition="'$(InteropGeneratorRuntimeReferencePath)' == '' and Exists('$(DalamudHooksDirectory)\InteropGenerator.Runtime.dll')">$(DalamudHooksDirectory)\InteropGenerator.Runtime.dll</InteropGeneratorRuntimeReferencePath>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
   <ItemGroup>
@@ -27,39 +17,6 @@
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="DalamudMCP.Plugin.json" Link="DalamudMCP.json" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-  <ItemGroup Condition="Exists('$(DalamudReferencePath)')">
-    <Reference Include="Dalamud">
-      <HintPath>$(DalamudReferencePath)</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="Dalamud.Bindings.ImGui" Condition="Exists('$(DalamudImGuiReferencePath)')">
-      <HintPath>$(DalamudImGuiReferencePath)</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="Lumina" Condition="Exists('$(LuminaReferencePath)')">
-      <HintPath>$(LuminaReferencePath)</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="Lumina.Excel" Condition="Exists('$(LuminaExcelReferencePath)')">
-      <HintPath>$(LuminaExcelReferencePath)</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="FFXIVClientStructs" Condition="Exists('$(ClientStructsReferencePath)')">
-      <HintPath>$(ClientStructsReferencePath)</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="InteropGenerator.Runtime" Condition="Exists('$(InteropGeneratorRuntimeReferencePath)')">
-      <HintPath>$(InteropGeneratorRuntimeReferencePath)</HintPath>
-      <Private>false</Private>
-    </Reference>
-  </ItemGroup>
-  <Target Name="EnsureDalamudReference" BeforeTargets="ResolveReferences">
-    <Error Condition="!Exists('$(DalamudReferencePath)')"
-           Text="Dalamud.dll was not found. Set the DalamudReferencePath MSBuild property or install a local Dalamud build under %APPDATA%\XIVLauncher\addon\Hooks\&lt;version&gt;\Dalamud.dll." />
-  </Target>
   <Target Name="BundleCliOutput" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
     <MSBuild Projects="..\DalamudMCP.Cli\DalamudMCP.Cli.csproj"
              Targets="Build"

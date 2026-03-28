@@ -728,7 +728,7 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
                 : "focus";
         return $"{addonName} could not dispatch {ToExternalName(eventType)} for {targetText} ({reason ?? "unknown"}).";
     }
-    
+
     [SupportedOSPlatform("windows")]
     private static unsafe bool TryPerformSystemMouseClick(
         AtkUnitBase* addonStruct,

@@ -1,5 +1,6 @@
 param(
     [string]$Solution = 'DalamudMCP.slnx',
+    [string]$DalamudHome,
     [switch]$NoBuild
 )
 
@@ -8,12 +9,22 @@ $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'Get-DotNetCommand.ps1')
+. (Join-Path $PSScriptRoot 'Use-DalamudHome.ps1')
 $dotnet = Get-DotNetCommand -RepositoryRoot $root
+$dalamudScope = Use-DalamudHome -DalamudHome $DalamudHome
 Push-Location $root
 try {
     $extension = [System.IO.Path]::GetExtension($Solution)
     if ($extension -eq '.csproj') {
         $testProjects = @((Resolve-Path $Solution).Path)
+    }
+    elseif ($extension -eq '.slnx' -and (Test-Path $Solution)) {
+        [xml]$solutionDocument = Get-Content (Resolve-Path $Solution)
+        $testProjects =
+            $solutionDocument.SelectNodes('//Project[@Path]') |
+            ForEach-Object { $_.Path } |
+            Where-Object { $_ -match '^(tests[\\/].+\.csproj)$' } |
+            ForEach-Object { (Resolve-Path (Join-Path $root $_)).Path }
     }
     else {
         $testProjects = Get-ChildItem -Path (Join-Path $root 'tests') -Filter '*.csproj' -Recurse |
@@ -35,4 +46,5 @@ try {
 }
 finally {
     Pop-Location
+    Restore-DalamudHome -Scope $dalamudScope
 }

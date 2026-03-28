@@ -2,35 +2,19 @@ name: ci
 
 on:
   push:
-    paths:
-      - 'DalamudMCP/**'
   pull_request:
-    paths:
-      - 'DalamudMCP/**'
 
 jobs:
-  quality-and-test:
+  portable-quality-and-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: DalamudMCP
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          global-json-file: DalamudMCP/global.json
+          global-json-file: global.json
           cache: true
           cache-dependency-path: |
-            DalamudMCP/**/packages.lock.json
-      - name: Restore
+            **/packages.lock.json
+      - name: Quality
         shell: pwsh
-        run: ./build/restore.ps1
-      - name: Format
-        shell: pwsh
-        run: ./build/format.ps1 -NoRestore
-      - name: Build
-        shell: pwsh
-        run: ./build/build.ps1 -NoRestore
-      - name: Test
-        shell: pwsh
-        run: ./build/test.ps1
+        run: ./build/quality.ps1 -Solution ./DalamudMCP.CI.slnx -SkipInspect

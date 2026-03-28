@@ -1,6 +1,6 @@
-using Microsoft.Extensions.DependencyInjection;
-using DalamudMCP.Framework.Generated;
 using DalamudMCP.Framework.Cli.Tests.Samples;
+using DalamudMCP.Framework.Generated;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DalamudMCP.Framework.Cli.Tests;
 

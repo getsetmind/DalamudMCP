@@ -248,11 +248,11 @@ internal static class ProtocolOperationRequestFactory
                     break;
 
                 case ProtocolValueKind.Json:
-                {
-                    using JsonDocument document = JsonDocument.Parse(originalText);
-                    document.RootElement.WriteTo(writer);
-                    return;
-                }
+                    {
+                        using JsonDocument document = JsonDocument.Parse(originalText);
+                        document.RootElement.WriteTo(writer);
+                        return;
+                    }
             }
         }
         catch (Exception exception) when (exception is FormatException or JsonException or UriFormatException)

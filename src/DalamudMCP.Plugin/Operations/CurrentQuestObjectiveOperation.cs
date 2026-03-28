@@ -12,8 +12,8 @@ using Lumina.Excel.Sheets;
 using MemoryPack;
 using AgentMap = FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMap;
 using GameUiMap = FFXIVClientStructs.FFXIV.Client.Game.UI.Map;
-using MarkerInfo = FFXIVClientStructs.FFXIV.Client.Game.UI.MarkerInfo;
 using MapMarkerData = FFXIVClientStructs.FFXIV.Client.Game.UI.MapMarkerData;
+using MarkerInfo = FFXIVClientStructs.FFXIV.Client.Game.UI.MarkerInfo;
 using QuestLinkMarker = FFXIVClientStructs.FFXIV.Client.UI.Agent.QuestLinkMarker;
 using QuestManager = FFXIVClientStructs.FFXIV.Client.Game.QuestManager;
 

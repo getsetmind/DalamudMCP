@@ -1,4 +1,4 @@
-using DalamudMCP.Plugin.Operations;
+using MemoryPack;
 
 namespace DalamudMCP.Protocol.Tests;
 
@@ -19,21 +19,21 @@ public sealed class NamedPipeProtocolClientServerTests
                 Assert.Equal(ProtocolPayloadFormat.MemoryPack, request.PreferredResponseFormat);
                 return ValueTask.FromResult(ProtocolContract.CreateSuccessResponse(
                     request.RequestId,
-                    new PlayerContextSnapshot(
+                    new SamplePlayerContextSnapshot(
                         "Test Adventurer",
                         "ExampleWorld",
                         "Dancer",
                         100,
                         "Sample Plaza",
-                        new PlayerPosition(1.2, 3.4, 5.6)),
-                    typeof(PlayerContextSnapshot),
+                        new SamplePlayerPosition(1.2, 3.4, 5.6)),
+                    typeof(SamplePlayerContextSnapshot),
                     preferredPayloadFormat: request.PreferredResponseFormat));
             });
         await server.StartAsync(TestContext.Current.CancellationToken);
 
         NamedPipeProtocolClient client = new(pipeName);
-        PlayerContextSnapshot snapshot = await client.InvokeAsync<PlayerContextOperation.Request, PlayerContextSnapshot>(
-            new PlayerContextOperation.Request(),
+        SamplePlayerContextSnapshot snapshot = await client.InvokeAsync<SamplePlayerContextRequest, SamplePlayerContextSnapshot>(
+            new SamplePlayerContextRequest(),
             TestContext.Current.CancellationToken);
 
         Assert.Equal("Test Adventurer", snapshot.CharacterName);
@@ -42,3 +42,22 @@ public sealed class NamedPipeProtocolClientServerTests
         Assert.Equal(100, snapshot.JobLevel);
     }
 }
+
+[ProtocolOperation("player.context")]
+[MemoryPackable]
+public sealed partial record SamplePlayerContextRequest;
+
+[MemoryPackable]
+public sealed partial record SamplePlayerContextSnapshot(
+    string CharacterName,
+    string HomeWorld,
+    string JobName,
+    int JobLevel,
+    string PlaceName,
+    SamplePlayerPosition Position);
+
+[MemoryPackable]
+public readonly partial record struct SamplePlayerPosition(
+    double X,
+    double Y,
+    double Z);

@@ -73,6 +73,13 @@ The handwritten truth source for these operations lives under [`src/DalamudMCP.P
 .\build\build.ps1 -NoRestore
 ```
 
+If Dalamud is not installed in the default developer path, set `DALAMUD_HOME` or pass `-DalamudHome` to the build scripts.
+
+```powershell
+$env:DALAMUD_HOME = 'C:\path\to\Hooks\dev'
+.\build\build.ps1 -NoRestore -DalamudHome $env:DALAMUD_HOME
+```
+
 ### 2. Install The Plugin
 
 The active plugin is:
@@ -118,6 +125,23 @@ Default endpoint:
 
 The plugin UI can also start and stop the bundled HTTP MCP server for you.
 
+### 5. Build A Release Package
+
+Build the plugin in `Release` and package the plugin output directory manually.
+
+```powershell
+.\.dotnet\dotnet.exe build .\src\DalamudMCP.Plugin\DalamudMCP.Plugin.csproj -c Release
+```
+
+If you need a custom Dalamud path:
+
+```powershell
+$env:DALAMUD_HOME = 'C:\path\to\Hooks\dev'
+.\.dotnet\dotnet.exe build .\src\DalamudMCP.Plugin\DalamudMCP.Plugin.csproj -c Release
+```
+
+The packaged output is written under `src/DalamudMCP.Plugin/bin/Release/DalamudMCP/`. Upload the generated `latest.zip` manually when cutting a release.
+
 ## Optional Integrations
 
 When compatible plugins are installed, `DalamudMCP` can use them behind existing high-level tools.
@@ -128,6 +152,9 @@ When compatible plugins are installed, `DalamudMCP` can use them behind existing
 These integrations stay behind normal high-level tools by default. Raw integration escape hatches remain developer-only.
 
 ## Build And Test
+
+GitHub Actions CI validates the portable layers and repository hygiene.
+The plugin build remains a local or self-hosted Windows step because `Dalamud.NET.Sdk` still needs a resolved `DALAMUD_HOME` / Hooks dev directory.
 
 Build:
 
@@ -154,9 +181,3 @@ Active projects:
 - [`src/DalamudMCP.Protocol`](./src/DalamudMCP.Protocol)
 - [`src/DalamudMCP.Cli`](./src/DalamudMCP.Cli)
 - [`src/DalamudMCP.Plugin`](./src/DalamudMCP.Plugin)
-
-## Further Reading
-
-- [`docs/README.md`](./docs/README.md)
-- [`docs/dalamudmcp-rearchitecture-proposal-2026-03-26.md`](./docs/dalamudmcp-rearchitecture-proposal-2026-03-26.md)
-- [`docs/remote-product-checklist-2026-03-26.md`](./docs/remote-product-checklist-2026-03-26.md)

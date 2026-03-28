@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dependencies": {
-    "net10.0": {
+    "net10.0-windows7.0": {
       "coverlet.MTP": {
         "type": "Direct",
         "requested": "[8.0.0, )",
@@ -38,6 +38,11 @@
           "xunit.v3.assert": "[3.2.2]",
           "xunit.v3.core.mtp-v2": "[3.2.2]"
         }
+      },
+      "DalamudPackager": {
+        "type": "Transitive",
+        "resolved": "14.0.2",
+        "contentHash": "dQJeq+8eyHzra4Cg5eZ/3LAeS3/UpvvLriYJGSncMK9LqJ7Q4B6jwcOsxo3PfxVd15xj+IzVFxkPqIBmPQu8/w=="
       },
       "MemoryPack": {
         "type": "Transitive",
@@ -187,6 +192,7 @@
         "dependencies": {
           "DalamudMCP.Framework": "[1.0.0, )",
           "DalamudMCP.Protocol": "[1.0.0, )",
+          "DalamudPackager": "[14.0.2, )",
           "MemoryPack": "[1.21.4, )",
           "Microsoft.Extensions.DependencyInjection": "[10.0.0, )"
         }
