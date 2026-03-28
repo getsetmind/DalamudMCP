@@ -17,4 +17,4 @@ jobs:
             **/packages.lock.json
       - name: Quality
         shell: pwsh
-        run: ./build/quality.ps1 -Solution ./DalamudMCP.CI.slnx -SkipInspect
+        run: ./build/quality.ps1 -Solution ./DalamudMCP.CI.slnx
