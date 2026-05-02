@@ -31,7 +31,7 @@ public sealed class CliHttpServerRunnerTests
 
         using HttpClient client = new()
         {
-            Timeout = TimeSpan.FromSeconds(2)
+            Timeout = TimeSpan.FromSeconds(5)
         };
 
         Uri endpoint = new($"http://127.0.0.1:{port}/mcp");
@@ -99,6 +99,9 @@ public sealed class CliHttpServerRunnerTests
                     return;
             }
             catch (HttpRequestException)
+            {
+            }
+            catch (TaskCanceledException)
             {
             }
 

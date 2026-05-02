@@ -136,12 +136,13 @@ public sealed partial class CurrentQuestObjectiveOperation
         if (questManager is null || map is null || agentMap is null)
             throw new InvalidOperationException("Quest objective systems are not available.");
 
+        ushort territoryType = checked((ushort)clientState.TerritoryType);
         TrackedQuestContext? trackedQuest = ResolveTrackedQuest(questManager, clientState, dataManager);
         if (trackedQuest is null)
         {
             return new CurrentQuestObjectiveSnapshot(
                 DateTimeOffset.UtcNow,
-                clientState.TerritoryType,
+                territoryType,
                 null,
                 null,
                 null,
@@ -157,11 +158,11 @@ public sealed partial class CurrentQuestObjectiveOperation
         {
             QuestName = ResolveQuestDisplayName(trackedQuest.QuestName, visibleMarkers, linkMarkers)
         };
-        string summaryText = BuildSummary(effectiveTrackedQuest, clientState.TerritoryType, visibleMarkers.Length, linkMarkers.Length);
+        string summaryText = BuildSummary(effectiveTrackedQuest, territoryType, visibleMarkers.Length, linkMarkers.Length);
 
         return new CurrentQuestObjectiveSnapshot(
             DateTimeOffset.UtcNow,
-            clientState.TerritoryType,
+            territoryType,
             effectiveTrackedQuest.QuestId,
             effectiveTrackedQuest.QuestName,
             effectiveTrackedQuest.QuestKind,

@@ -182,10 +182,11 @@ public sealed partial class AvailableQuestsOperation
                 break;
         }
 
-        string summaryText = BuildSnapshotSummary(clientState.TerritoryType, nameContains, quests.Count);
+        ushort territoryType = checked((ushort)clientState.TerritoryType);
+        string summaryText = BuildSnapshotSummary(territoryType, nameContains, quests.Count);
         return new AvailableQuestsSnapshot(
             DateTimeOffset.UtcNow,
-            clientState.TerritoryType,
+            territoryType,
             nameContains,
             quests.ToArray(),
             summaryText);

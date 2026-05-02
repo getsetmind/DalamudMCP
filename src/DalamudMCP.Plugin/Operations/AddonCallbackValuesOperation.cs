@@ -112,7 +112,7 @@ public sealed partial class AddonCallbackValuesOperation : IOperation<AddonCallb
         {
             atkValues[index] = new AtkValue
             {
-                Type = FFXIVClientStructs.FFXIV.Component.GUI.ValueType.Int,
+                Type = FFXIVClientStructs.FFXIV.Component.GUI.AtkValueType.Int,
                 Int = copiedValues[index]
             };
         }

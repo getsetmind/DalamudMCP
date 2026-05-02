@@ -5,8 +5,7 @@ using DalamudMCP.Framework;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using MemoryPack;
-using AtkInputState = FFXIVClientStructs.FFXIV.Component.GUI.AtkEventData.AtkInputData.InputState;
-using AtkModifierFlag = FFXIVClientStructs.FFXIV.Component.GUI.AtkEventData.AtkInputData.ModifierFlag;
+using AtkInputState = FFXIVClientStructs.FFXIV.Component.GUI.InputState;
 
 namespace DalamudMCP.Plugin.Operations;
 
@@ -219,7 +218,7 @@ public sealed partial class AddonInputOperation : IOperation<AddonInputOperation
         {
             InputId = inputId,
             State = ToNativeInputState(inputState, auxiliaryState),
-            Modifier = AtkModifierFlag.None
+            Modifier = 0
         };
 
         return addonStruct->HandleCustomInput(&inputData);
