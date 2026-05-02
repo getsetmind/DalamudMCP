@@ -90,7 +90,6 @@ public sealed partial class AddonSelectMenuItemOperation : IOperation<AddonSelec
             if (framework.IsInFrameworkUpdateThread)
             {
                 return SelectMenuItemCore(
-                    clientState,
                     gameGui,
                     addonName,
                     requestedLabel,
@@ -100,7 +99,6 @@ public sealed partial class AddonSelectMenuItemOperation : IOperation<AddonSelec
 
             return await framework.RunOnFrameworkThread(
                     () => SelectMenuItemCore(
-                        clientState,
                         gameGui,
                         addonName,
                         requestedLabel,
@@ -112,7 +110,6 @@ public sealed partial class AddonSelectMenuItemOperation : IOperation<AddonSelec
 
     [SupportedOSPlatform("windows")]
     private static unsafe AddonSelectMenuItemResult SelectMenuItemCore(
-        IClientState clientState,
         IGameGui gameGui,
         string addonName,
         string requestedLabel,
@@ -120,15 +117,6 @@ public sealed partial class AddonSelectMenuItemOperation : IOperation<AddonSelec
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!clientState.IsLoggedIn)
-        {
-            return CreateFailure(
-                addonName,
-                requestedLabel,
-                "not_logged_in",
-                "Player is not logged in.");
-        }
-
         if (!TryGetReadyAddon(gameGui, addonName, out string reason, out string summary))
             return CreateFailure(addonName, requestedLabel, reason, summary);
 

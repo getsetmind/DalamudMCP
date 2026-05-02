@@ -24,6 +24,10 @@
     <ProjectReference Include="..\..\src\DalamudMCP.Protocol\DalamudMCP.Protocol.csproj" />
   </ItemGroup>
   <ItemGroup Condition="Exists('$(DalamudLibPath)Dalamud.dll')">
+    <Reference Include="Dalamud">
+      <HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
     <Content Include="$(DalamudLibPath)Dalamud.dll" Link="Dalamud.dll" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="$(DalamudLibPath)Dalamud.Bindings.ImGui.dll" Condition="Exists('$(DalamudLibPath)Dalamud.Bindings.ImGui.dll')" Link="Dalamud.Bindings.ImGui.dll" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="$(DalamudLibPath)Lumina.dll" Condition="Exists('$(DalamudLibPath)Lumina.dll')" Link="Lumina.dll" CopyToOutputDirectory="PreserveNewest" />

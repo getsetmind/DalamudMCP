@@ -2,7 +2,7 @@
   <PropertyGroup>
     <RootNamespace>DalamudMCP.Plugin</RootNamespace>
     <AssemblyName>DalamudMCP</AssemblyName>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
@@ -12,7 +12,11 @@
     <PackageReference Include="Manifold.Generators" Version="1.0.0" PrivateAssets="all" />
     <PackageReference Include="MemoryPack" Version="1.21.4" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="R3" Version="1.3.0" />
     <ProjectReference Include="..\DalamudMCP.Protocol\DalamudMCP.Protocol.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="lang\*.json" />
   </ItemGroup>
   <Target Name="BundleCliOutput" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
     <MSBuild Projects="..\DalamudMCP.Cli\DalamudMCP.Cli.csproj"

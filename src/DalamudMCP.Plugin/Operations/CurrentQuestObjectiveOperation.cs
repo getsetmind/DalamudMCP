@@ -3,12 +3,12 @@ using System.Reflection;
 using System.Runtime.Versioning;
 using Dalamud.Game;
 using Dalamud.Plugin.Services;
-using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Application.Network.WorkDefinitions;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
+using Manifold;
 using MemoryPack;
 using AgentMap = FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMap;
 using GameUiMap = FFXIVClientStructs.FFXIV.Client.Game.UI.Map;
@@ -136,10 +136,10 @@ public sealed partial class CurrentQuestObjectiveOperation
         if (questManager is null || map is null || agentMap is null)
             throw new InvalidOperationException("Quest objective systems are not available.");
 
-        ushort territoryType = checked((ushort)clientState.TerritoryType);
         TrackedQuestContext? trackedQuest = ResolveTrackedQuest(questManager, clientState, dataManager);
         if (trackedQuest is null)
         {
+            ushort territoryType = (ushort)clientState.TerritoryType;
             return new CurrentQuestObjectiveSnapshot(
                 DateTimeOffset.UtcNow,
                 territoryType,
@@ -149,7 +149,7 @@ public sealed partial class CurrentQuestObjectiveOperation
                 null,
                 [],
                 [],
-                $"No tracked quest objective is currently available in Territory#{clientState.TerritoryType.ToString(CultureInfo.InvariantCulture)}.");
+                $"No tracked quest objective is currently available in Territory#{territoryType.ToString(CultureInfo.InvariantCulture)}.");
         }
 
         CurrentQuestObjectiveVisibleMarker[] visibleMarkers = ResolveVisibleMarkers(map, trackedQuest.QuestId);
@@ -158,11 +158,12 @@ public sealed partial class CurrentQuestObjectiveOperation
         {
             QuestName = ResolveQuestDisplayName(trackedQuest.QuestName, visibleMarkers, linkMarkers)
         };
-        string summaryText = BuildSummary(effectiveTrackedQuest, territoryType, visibleMarkers.Length, linkMarkers.Length);
+        ushort currentTerritoryType = (ushort)clientState.TerritoryType;
+        string summaryText = BuildSummary(effectiveTrackedQuest, currentTerritoryType, visibleMarkers.Length, linkMarkers.Length);
 
         return new CurrentQuestObjectiveSnapshot(
             DateTimeOffset.UtcNow,
-            territoryType,
+            currentTerritoryType,
             effectiveTrackedQuest.QuestId,
             effectiveTrackedQuest.QuestName,
             effectiveTrackedQuest.QuestKind,

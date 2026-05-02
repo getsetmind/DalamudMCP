@@ -3,9 +3,9 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Plugin.Services;
-using Manifold;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using Manifold;
 using MemoryPack;
 
 namespace DalamudMCP.Plugin.Operations;
@@ -94,7 +94,6 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
             if (framework.IsInFrameworkUpdateThread)
             {
                 return SendEventCore(
-                    clientState,
                     gameGui,
                     addonName,
                     eventTypeName,
@@ -106,7 +105,6 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
 
             return await framework.RunOnFrameworkThread(
                     () => SendEventCore(
-                        clientState,
                         gameGui,
                         addonName,
                         eventTypeName,
@@ -120,7 +118,6 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
 
     [SupportedOSPlatform("windows")]
     private static unsafe AddonEventResult SendEventCore(
-        IClientState clientState,
         IGameGui gameGui,
         string addonName,
         string eventTypeName,
@@ -130,19 +127,6 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!clientState.IsLoggedIn)
-        {
-            return new AddonEventResult(
-                addonName,
-                eventTypeName,
-                eventParam ?? -1,
-                collisionIndex,
-                nodeId,
-                false,
-                "not_logged_in",
-                "Player is not logged in.");
-        }
-
         if (!TryParseEventType(eventTypeName, out AddonEventType eventType))
         {
             return new AddonEventResult(
@@ -460,8 +444,7 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
                 InputData = new AtkEventData.AtkInputData
                 {
                     InputId = eventParam,
-                    State = InputState.Repeat,
-                    Modifier = 0
+                    State = InputState.Repeat
                 }
             },
             AtkEventType.InputReceived => new AtkEventData
@@ -469,8 +452,7 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
                 InputData = new AtkEventData.AtkInputData
                 {
                     InputId = eventParam,
-                    State = InputState.Down,
-                    Modifier = 0
+                    State = InputState.Down
                 }
             },
             _ => new AtkEventData
@@ -488,8 +470,7 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
             PosX = GetNodeCenterCoordinate(sourceNode->ScreenX, sourceNode->Width),
             PosY = GetNodeCenterCoordinate(sourceNode->ScreenY, sourceNode->Height),
             WheelDirection = 0,
-            ButtonId = 1,
-            Modifier = 0
+            ButtonId = 1
         };
     }
 

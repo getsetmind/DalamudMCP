@@ -55,6 +55,9 @@ public sealed partial class AddonCallbackValuesOperation : IOperation<AddonCallb
 
         [Option("values", Description = "Comma-separated callback values such as '8,1'.")]
         public int[] Values { get; init; } = [];
+
+        [Option("update-state", Description = "Pass true to update addon state before firing the callback.", Required = false)]
+        public bool? UpdateState { get; init; }
     }
 
     public sealed class TextFormatter : IResultFormatter<AddonCallbackValuesResult>
@@ -79,26 +82,25 @@ public sealed partial class AddonCallbackValuesOperation : IOperation<AddonCallb
             cancellationToken.ThrowIfCancellationRequested();
             string addonName = NormalizeAddonName(request.AddonName);
             int[] values = request.Values ?? [];
+            bool updateState = request.UpdateState ?? false;
 
             if (framework.IsInFrameworkUpdateThread)
-                return SendValuesCore(clientState, gameGui, addonName, values, cancellationToken);
+                return SendValuesCore(gameGui, addonName, values, updateState, cancellationToken);
 
-            return await framework.RunOnFrameworkThread(() => SendValuesCore(clientState, gameGui, addonName, values, cancellationToken))
+            return await framework.RunOnFrameworkThread(() => SendValuesCore(gameGui, addonName, values, updateState, cancellationToken))
                 .ConfigureAwait(false);
         };
     }
 
     [SupportedOSPlatform("windows")]
     private static unsafe AddonCallbackValuesResult SendValuesCore(
-        IClientState clientState,
         IGameGui gameGui,
         string addonName,
         int[] values,
+        bool updateState,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!clientState.IsLoggedIn)
-            return new AddonCallbackValuesResult(addonName, [.. values], false, "not_logged_in", "Player is not logged in.");
 
         if (values.Length == 0)
             return new AddonCallbackValuesResult(addonName, [], false, "no_values", "At least one callback value is required.");
@@ -117,13 +119,13 @@ public sealed partial class AddonCallbackValuesOperation : IOperation<AddonCallb
             };
         }
 
-        addonStruct->FireCallback((uint)copiedValues.Length, atkValues, false);
+        addonStruct->FireCallback((uint)copiedValues.Length, atkValues, updateState);
         return new AddonCallbackValuesResult(
             addonName,
             copiedValues,
             true,
             null,
-            $"Sent callback values [{string.Join(", ", copiedValues)}] to {addonName}.");
+            $"Sent callback values [{string.Join(", ", copiedValues)}] to {addonName} with updateState={updateState}.");
     }
 
     [SupportedOSPlatform("windows")]
