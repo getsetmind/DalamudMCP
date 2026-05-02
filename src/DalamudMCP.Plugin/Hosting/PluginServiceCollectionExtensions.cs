@@ -1,9 +1,11 @@
 using System.Runtime.Versioning;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using DalamudMCP.Plugin.Relay;
+using DalamudMCP.Plugin.Ui.Localization;
+using DalamudMCP.Protocol;
 using Manifold;
 using Manifold.Generated;
-using DalamudMCP.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DalamudMCP.Plugin.Hosting;
@@ -24,7 +26,9 @@ public static class PluginServiceCollectionExtensions
         IFateTable fateTable,
         IDataManager dataManager,
         IGameGui gameGui,
-        ITargetManager targetManager)
+        IChatGui chatGui,
+        ITargetManager targetManager,
+        ICommandManager commandManager)
     {
         ArgumentNullException.ThrowIfNull(pluginInterface);
         ArgumentNullException.ThrowIfNull(configurationStore);
@@ -38,13 +42,16 @@ public static class PluginServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(fateTable);
         ArgumentNullException.ThrowIfNull(dataManager);
         ArgumentNullException.ThrowIfNull(gameGui);
+        ArgumentNullException.ThrowIfNull(chatGui);
         ArgumentNullException.ThrowIfNull(targetManager);
+        ArgumentNullException.ThrowIfNull(commandManager);
 
         ServiceCollection services = new();
         services.AddSingleton(options);
         services.AddSingleton(pluginInterface);
         services.AddSingleton(configurationStore);
         services.AddSingleton<Configuration.IPluginUiConfigurationAccessor>(configurationStore);
+        services.AddSingleton<IUiLocalization>(_ => new JsonLocalization(configurationStore.Current.SelectedLanguage));
         services.AddSingleton(framework);
         services.AddSingleton(clientState);
         services.AddSingleton(condition);
@@ -54,7 +61,11 @@ public static class PluginServiceCollectionExtensions
         services.AddSingleton(fateTable);
         services.AddSingleton(dataManager);
         services.AddSingleton(gameGui);
+        services.AddSingleton(chatGui);
         services.AddSingleton(targetManager);
+        services.AddSingleton(commandManager);
+        services.AddSingleton<Services.ChatLogBufferService>();
+        services.AddSingleton<IPluginDataRelayService, PluginDataRelayService>();
         services.AddGeneratedPluginOperations();
         services.AddSingleton<IOperationInvoker, GeneratedOperationInvoker>();
         services.AddSingleton<IReadOnlyList<OperationDescriptor>>(static _ => GeneratedOperationRegistry.Operations);

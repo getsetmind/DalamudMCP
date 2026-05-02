@@ -11,4 +11,6 @@ public sealed class PluginUiConfiguration : IPluginConfiguration
     public bool EnableActionOperations { get; set; }
 
     public bool EnableUnsafeOperations { get; set; }
+
+    public string SelectedLanguage { get; set; } = "en";
 }

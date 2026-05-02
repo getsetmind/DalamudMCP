@@ -1,11 +1,12 @@
 using System.Runtime.Versioning;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using Manifold;
 using DalamudMCP.Plugin.Configuration;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Plugin.Ui;
+using DalamudMCP.Plugin.Ui.Localization;
 using DalamudMCP.Protocol;
+using Manifold;
 
 namespace DalamudMCP.Plugin;
 
@@ -29,7 +30,9 @@ public sealed class PluginEntryPoint : IDalamudPlugin
         IFateTable fateTable,
         IDataManager dataManager,
         IGameGui gameGui,
-        ITargetManager targetManager)
+        IChatGui chatGui,
+        ITargetManager targetManager,
+        ICommandManager commandManager)
     {
         ArgumentNullException.ThrowIfNull(pluginInterface);
         ArgumentNullException.ThrowIfNull(framework);
@@ -41,7 +44,9 @@ public sealed class PluginEntryPoint : IDalamudPlugin
         ArgumentNullException.ThrowIfNull(fateTable);
         ArgumentNullException.ThrowIfNull(dataManager);
         ArgumentNullException.ThrowIfNull(gameGui);
+        ArgumentNullException.ThrowIfNull(chatGui);
         ArgumentNullException.ThrowIfNull(targetManager);
+        ArgumentNullException.ThrowIfNull(commandManager);
 
         this.pluginInterface = pluginInterface;
         configurationStore = PluginUiConfigurationStore.Load(pluginInterface);
@@ -57,7 +62,9 @@ public sealed class PluginEntryPoint : IDalamudPlugin
             fateTable,
             dataManager,
             gameGui,
-            targetManager);
+            chatGui,
+            targetManager,
+            commandManager);
         compositionRoot.StartAsync().GetAwaiter().GetResult();
         ProtocolClientDiscovery.Write(
             new ProtocolClientDiscoveryRecord(
@@ -81,7 +88,8 @@ public sealed class PluginEntryPoint : IDalamudPlugin
             configurationStore,
             mcpServerController,
             operations,
-            compositionRoot.GetServices<IPluginReaderStatus>());
+            compositionRoot.GetServices<IPluginReaderStatus>(),
+            compositionRoot.GetRequiredService<IUiLocalization>());
         if (configurationStore.Current.AutoStartHttpServerOnLoad)
             _ = mcpServerController.Start();
         HookUi(pluginInterface);
@@ -119,5 +127,4 @@ public sealed class PluginEntryPoint : IDalamudPlugin
     {
         configWindow.Open();
     }
-
 }

@@ -1,15 +1,12 @@
-using Manifold;
 using DalamudMCP.Plugin.Readers;
+using DalamudMCP.Plugin.Ui.Localization;
+using Manifold;
 
 namespace DalamudMCP.Plugin.Ui;
 
 internal sealed class PluginConfigWindowModel
 {
-    private static readonly string ProtocolServerRunningText = "Server status: running";
-    private static readonly string ProtocolServerStoppedText = "Server status: stopped";
-    private static readonly string McpServerRunningText = "Status: running";
-    private static readonly string McpServerStoppedText = "Status: stopped";
-
+    private readonly IUiLocalization localization;
     private readonly IPluginReaderStatus?[] readerStatuses;
     private readonly PluginConfigOperationRow[] operations;
     private string? mcpServerCommand;
@@ -29,8 +26,10 @@ internal sealed class PluginConfigWindowModel
         string cliCommand,
         string mcpCommand,
         PluginConfigOperationRow[] operations,
-        IPluginReaderStatus?[] readerStatuses)
+        IPluginReaderStatus?[] readerStatuses,
+        IUiLocalization localization)
     {
+        this.localization = localization;
         PipeName = pipeName;
         PipeNameText = pipeNameText;
         CliCommand = cliCommand;
@@ -46,17 +45,17 @@ internal sealed class PluginConfigWindowModel
 
     public bool ProtocolServerRunning { get; private set; }
 
-    public string ProtocolServerStatusText { get; private set; } = ProtocolServerStoppedText;
+    public string ProtocolServerStatusText { get; private set; } = string.Empty;
 
     public bool AutoStartHttpServerOnLoad { get; private set; }
 
     public bool ActionOperationsEnabled { get; private set; }
 
-    public string ActionOperationsStatusText => actionOperationsStatusText ?? "Action operations: disabled";
+    public string ActionOperationsStatusText => actionOperationsStatusText ?? localization["status.actions_disabled"];
 
     public bool UnsafeOperationsEnabled { get; private set; }
 
-    public string UnsafeOperationsStatusText => unsafeOperationsStatusText ?? "Unsafe operations: disabled";
+    public string UnsafeOperationsStatusText => unsafeOperationsStatusText ?? localization["status.unsafe_disabled"];
 
     public bool McpServerRunning { get; private set; }
 
@@ -70,7 +69,7 @@ internal sealed class PluginConfigWindowModel
 
     public string? McpServerErrorText { get; private set; }
 
-    public string McpServerStatusText { get; private set; } = McpServerStoppedText;
+    public string McpServerStatusText { get; private set; } = string.Empty;
 
     public string CliCommand { get; }
 
@@ -102,21 +101,24 @@ internal sealed class PluginConfigWindowModel
         bool unsafeOperationsEnabled,
         Hosting.PluginMcpServerStatus mcpServerStatus,
         IReadOnlyList<OperationDescriptor> operations,
-        IReadOnlyList<IPluginReaderStatus> readerStatuses)
+        IReadOnlyList<IPluginReaderStatus> readerStatuses,
+        IUiLocalization? localization = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(mcpServerStatus);
         ArgumentNullException.ThrowIfNull(operations);
         ArgumentNullException.ThrowIfNull(readerStatuses);
 
-        PluginConfigOperationRow[] rows = CreateRows(operations, readerStatuses, out IPluginReaderStatus?[] rowsByReader);
+        IUiLocalization activeLocalization = localization ?? EnglishLocalization.Instance;
+        PluginConfigOperationRow[] rows = CreateRows(operations, readerStatuses, activeLocalization, out IPluginReaderStatus?[] rowsByReader);
         PluginConfigWindowModel model = new(
             options.PipeName,
-            "Active pipe (advanced): " + options.PipeName,
+            activeLocalization.Format("label.pipe_name", options.PipeName),
             @"dotnet run --project .\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj -- player context",
             @"dotnet run --project .\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj -- serve mcp",
             rows,
-            rowsByReader);
+            rowsByReader,
+            activeLocalization);
         model.ApplyStatus(
             protocolServerRunning,
             autoStartHttpServerOnLoad,
@@ -160,21 +162,21 @@ internal sealed class PluginConfigWindowModel
     {
         ProtocolServerRunning = protocolServerRunning;
         ProtocolServerStatusText = protocolServerRunning
-            ? ProtocolServerRunningText
-            : ProtocolServerStoppedText;
+            ? localization["status.server_running"]
+            : localization["status.server_stopped"];
         AutoStartHttpServerOnLoad = autoStartHttpServerOnLoad;
         ActionOperationsEnabled = actionOperationsEnabled;
         actionOperationsStatusText = actionOperationsEnabled
-            ? "Action operations: enabled"
-            : "Action operations: disabled";
+            ? localization["status.actions_enabled"]
+            : localization["status.actions_disabled"];
         UnsafeOperationsEnabled = unsafeOperationsEnabled;
         unsafeOperationsStatusText = unsafeOperationsEnabled
-            ? "Unsafe operations: enabled"
-            : "Unsafe operations: disabled";
+            ? localization["status.unsafe_enabled"]
+            : localization["status.unsafe_disabled"];
         McpServerRunning = mcpServerRunning;
         McpServerStatusText = mcpServerRunning
-            ? McpServerRunningText
-            : McpServerStoppedText;
+            ? localization["status.http_running"]
+            : localization["status.http_stopped"];
 
         UpdateEndpointText(mcpServerEndpoint);
         UpdateCommand(mcpServerCommand);
@@ -186,6 +188,7 @@ internal sealed class PluginConfigWindowModel
     private static PluginConfigOperationRow[] CreateRows(
         IReadOnlyList<OperationDescriptor> operations,
         IReadOnlyList<IPluginReaderStatus> readerStatuses,
+        IUiLocalization localization,
         out IPluginReaderStatus?[] rowsByReader)
     {
         OperationDescriptor[] sortedOperations = new OperationDescriptor[operations.Count];
@@ -212,7 +215,8 @@ internal sealed class PluginConfigWindowModel
                 operation.OperationId,
                 operation.Summary ?? operation.Description ?? operation.OperationId,
                 operation.CliCommandPath is { Count: > 0 } cliPath ? string.Join(' ', cliPath) : null,
-                operation.McpToolName);
+                operation.McpToolName,
+                localization);
             readersByKey.TryGetValue(operation.OperationId, out rowsByReader[index]);
         }
 
@@ -225,7 +229,7 @@ internal sealed class PluginConfigWindowModel
             return;
 
         McpServerEndpoint = endpoint;
-        McpServerEndpointText = "Endpoint: " + endpoint;
+        McpServerEndpointText = localization.Format("label.endpoint", endpoint);
     }
 
     private void UpdateCommand(string? command)
@@ -244,7 +248,7 @@ internal sealed class PluginConfigWindowModel
         mcpServerError = error;
         McpServerErrorText = string.IsNullOrWhiteSpace(error)
             ? null
-            : "Last error: " + error;
+            : localization.Format("label.last_error", error);
     }
 
     private void RefreshReaderStatuses()
@@ -272,7 +276,7 @@ internal sealed class PluginConfigWindowModel
         readyReaderCount = newReadyReaderCount;
         readerCount = newReaderCount;
         ReaderStatusText = newReaderCount > 0
-            ? $"Reader status: {newReadyReaderCount}/{newReaderCount} ready"
+            ? localization.Format("status.reader_format", newReadyReaderCount, newReaderCount)
             : null;
     }
 
@@ -307,22 +311,26 @@ internal sealed class PluginConfigWindowModel
 
 internal sealed class PluginConfigOperationRow
 {
+    private readonly IUiLocalization localization;
+
     public PluginConfigOperationRow(
         string operationId,
         string summary,
         string? cliCommand,
-        string? mcpToolName)
+        string? mcpToolName,
+        IUiLocalization localization)
     {
+        this.localization = localization;
         OperationId = operationId;
         Summary = summary;
         CliCommand = cliCommand;
         McpToolName = mcpToolName;
         CliCommandText = string.IsNullOrWhiteSpace(cliCommand)
             ? null
-            : "CLI: " + cliCommand;
+            : localization.Format("label.cli_prefix", cliCommand);
         McpToolText = string.IsNullOrWhiteSpace(mcpToolName)
             ? null
-            : "MCP: " + mcpToolName;
+            : localization.Format("label.mcp_prefix", mcpToolName);
         IsActionOperation = Hosting.PluginOperationExposurePolicy.IsActionOperation(operationId);
         IsUnsafeOperation = Hosting.PluginOperationExposurePolicy.IsUnsafeOperation(operationId);
     }
@@ -375,9 +383,9 @@ internal sealed class PluginConfigOperationRow
     {
         string? exposureStatusText =
             IsUnsafeOperation && !unsafeOperationsEnabled
-                ? "Exposure: disabled until unsafe operations are enabled"
+                ? localization["status.exposure_unsafe_pending"]
                 : IsActionOperation && !actionOperationsEnabled
-                    ? "Exposure: disabled until action operations are enabled"
+                    ? localization["status.exposure_action_pending"]
                     : null;
 
         if (string.Equals(ExposureStatusText, exposureStatusText, StringComparison.Ordinal))
@@ -390,16 +398,18 @@ internal sealed class PluginConfigOperationRow
         IsExposed = exposureStatusText is null;
     }
 
-    private static string? CreateReaderStatusText(bool? isReady, string? detail)
+    private string? CreateReaderStatusText(bool? isReady, string? detail)
     {
         if (isReady is null)
             return null;
 
-        string readiness = isReady.Value ? "ready" : "not ready";
+        string readiness = isReady.Value
+            ? localization["status.reader_ready_word"]
+            : localization["status.reader_not_ready_word"];
         if (string.IsNullOrWhiteSpace(detail))
-            return "Reader: " + readiness;
+            return localization.Format("status.reader", readiness);
 
-        return $"Reader: {readiness} ({detail})";
+        return localization.Format("status.reader_detail", readiness, detail);
     }
 
     private static void TryReadReaderStatus(

@@ -45,6 +45,12 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.0"
         }
       },
+      "R3": {
+        "type": "Direct",
+        "requested": "[1.3.0, )",
+        "resolved": "1.3.0",
+        "contentHash": "c4bL37HGimYon/qfRTZOJE41M3cgdMJn/p4O5Jq+WHTJGNXUb1x2DlVI+iZk5phCBwq3ERfrgbaPu9WdG2OS+w=="
+      },
       "MemoryPack.Core": {
         "type": "Transitive",
         "resolved": "1.21.4",

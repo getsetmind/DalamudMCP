@@ -1,9 +1,10 @@
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
-using Manifold;
 using DalamudMCP.Plugin.Configuration;
 using DalamudMCP.Plugin.Readers;
+using DalamudMCP.Plugin.Ui.Localization;
 using DalamudMCP.Protocol;
+using Manifold;
 
 namespace DalamudMCP.Plugin.Ui;
 
@@ -18,8 +19,12 @@ public sealed class PluginConfigWindow
 
     private readonly PluginUiConfigurationStore configurationStore;
     private readonly Hosting.PluginMcpServerController mcpServerController;
-    private readonly PluginConfigWindowModel model;
+    private readonly PluginRuntimeOptions options;
+    private readonly IReadOnlyList<OperationDescriptor> operations;
+    private readonly IReadOnlyList<IPluginReaderStatus> readerStatuses;
+    private readonly IUiLocalization localization;
     private readonly NamedPipeProtocolServer protocolServer;
+    private PluginConfigWindowModel model;
     private bool isOpen;
     private bool showBlockedOnly;
     private bool showReaderBackedOnly;
@@ -33,24 +38,19 @@ public sealed class PluginConfigWindow
         PluginUiConfigurationStore configurationStore,
         Hosting.PluginMcpServerController mcpServerController,
         IReadOnlyList<OperationDescriptor> operations,
-        IReadOnlyList<IPluginReaderStatus> readerStatuses)
+        IReadOnlyList<IPluginReaderStatus> readerStatuses,
+        IUiLocalization localization)
     {
-        ArgumentNullException.ThrowIfNull(options);
+        this.options = options ?? throw new ArgumentNullException(nameof(options));
         this.protocolServer = protocolServer ?? throw new ArgumentNullException(nameof(protocolServer));
         this.configurationStore = configurationStore ?? throw new ArgumentNullException(nameof(configurationStore));
         this.mcpServerController = mcpServerController ?? throw new ArgumentNullException(nameof(mcpServerController));
-        ArgumentNullException.ThrowIfNull(operations);
-        ArgumentNullException.ThrowIfNull(readerStatuses);
+        this.operations = operations ?? throw new ArgumentNullException(nameof(operations));
+        this.readerStatuses = readerStatuses ?? throw new ArgumentNullException(nameof(readerStatuses));
+        this.localization = localization ?? throw new ArgumentNullException(nameof(localization));
+        this.localization.SetLanguage(configurationStore.Current.SelectedLanguage);
 
-        model = PluginConfigWindowModel.Create(
-            options,
-            protocolServer.IsRunning,
-            configurationStore.Current.AutoStartHttpServerOnLoad,
-            configurationStore.Current.EnableActionOperations,
-            configurationStore.Current.EnableUnsafeOperations,
-            mcpServerController.GetStatus(),
-            operations,
-            readerStatuses);
+        model = CreateModel();
     }
 
     public void Open()
@@ -67,7 +67,7 @@ public sealed class PluginConfigWindow
         RefreshModel(force: false);
 
         ImGui.SetNextWindowSize(new Vector2(980f, 760f), ImGuiCond.FirstUseEver);
-        if (!ImGui.Begin("DalamudMCP Settings", ref isOpen, ImGuiWindowFlags.NoCollapse))
+        if (!ImGui.Begin(localization["window.title"], ref isOpen, ImGuiWindowFlags.NoCollapse))
         {
             ImGui.End();
             return;
@@ -97,24 +97,69 @@ public sealed class PluginConfigWindow
         nextRefreshAt = now + RefreshIntervalMilliseconds;
     }
 
+    private PluginConfigWindowModel CreateModel()
+    {
+        return PluginConfigWindowModel.Create(
+            options,
+            protocolServer.IsRunning,
+            configurationStore.Current.AutoStartHttpServerOnLoad,
+            configurationStore.Current.EnableActionOperations,
+            configurationStore.Current.EnableUnsafeOperations,
+            mcpServerController.GetStatus(),
+            operations,
+            readerStatuses,
+            localization);
+    }
+
     private void DrawHeader()
     {
         ImGui.TextColored(AccentColor, "DalamudMCP");
         ImGui.SameLine();
-        ImGui.TextDisabled("Live bridge for FFXIV observations, actions, and MCP exposure.");
+        ImGui.TextDisabled(localization["header.subtitle"]);
 
         DrawInlineBadge(
-            model.ProtocolServerRunning ? "PIPE LIVE" : "PIPE DOWN",
+            model.ProtocolServerRunning ? localization["header.pipe_live"] : localization["header.pipe_down"],
             model.ProtocolServerRunning ? SuccessColor : DangerColor);
         DrawInlineBadge(
-            model.McpServerRunning ? "HTTP LIVE" : "HTTP STOPPED",
+            model.McpServerRunning ? localization["header.http_live"] : localization["header.http_stopped"],
             model.McpServerRunning ? SuccessColor : WarningColor);
         DrawInlineBadge(
-            $"{model.ExposedOperationCount}/{model.OperationCount} EXPOSED",
+            localization.Format("header.exposed", model.ExposedOperationCount, model.OperationCount),
             AccentColor);
 
-        ImGui.TextColored(MutedColor, "The top row is for runtime health. The bottom half is for operations browsing and copy-ready commands.");
+        DrawLanguageSelector();
+        ImGui.TextColored(MutedColor, localization["header.hint"]);
         ImGui.Separator();
+    }
+
+    private void DrawLanguageSelector()
+    {
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(140f);
+        string selectedLanguage = localization.CurrentLanguage;
+        string selectedLabel = localization.SupportedLanguages
+            .FirstOrDefault(language => string.Equals(language.Code, selectedLanguage, StringComparison.OrdinalIgnoreCase))
+            ?.DisplayName ?? selectedLanguage;
+        if (!ImGui.BeginCombo(localization["language.label"], selectedLabel))
+            return;
+
+        for (int index = 0; index < localization.SupportedLanguages.Count; index++)
+        {
+            UiLanguage language = localization.SupportedLanguages[index];
+            bool isSelected = string.Equals(language.Code, selectedLanguage, StringComparison.OrdinalIgnoreCase);
+            if (ImGui.Selectable(language.DisplayName, isSelected))
+            {
+                localization.SetLanguage(language.Code);
+                configurationStore.Update(configuration => configuration.SelectedLanguage = language.Code);
+                model = CreateModel();
+                RefreshModel(force: true);
+            }
+
+            if (isSelected)
+                ImGui.SetItemDefaultFocus();
+        }
+
+        ImGui.EndCombo();
     }
 
     private void DrawOverview()
@@ -137,36 +182,36 @@ public sealed class PluginConfigWindow
             return;
         }
 
-        DrawPanelTitle("Runtime", "Connection health, discovery, and exposure posture.");
-        DrawKeyValue("Discovery", "CLI auto-discovery enabled");
-        DrawStatusLine("Named pipe", model.ProtocolServerRunning, model.ProtocolServerStatusText);
+        DrawPanelTitle(localization["runtime.title"], localization["runtime.subtitle"]);
+        DrawKeyValue(localization["runtime.discovery"], localization["runtime.discovery_value"]);
+        DrawStatusLine(localization["runtime.pipe"], model.ProtocolServerRunning, model.ProtocolServerStatusText);
         if (!string.IsNullOrWhiteSpace(model.ReaderStatusText))
-            DrawStatusLine("Readers", model.ReadyReaderCount == model.ReaderCount, model.ReaderStatusText!);
+            DrawStatusLine(localization["runtime.readers"], model.ReadyReaderCount == model.ReaderCount, model.ReaderStatusText!);
 
-        DrawStatusLine("Action tools", model.ActionOperationsEnabled, model.ActionOperationsStatusText);
-        DrawStatusLine("Unsafe tools", model.UnsafeOperationsEnabled, model.UnsafeOperationsStatusText);
-        DrawKeyValue("Operations", $"{model.OperationCount} total  |  {model.ExposedOperationCount} exposed  |  {model.BlockedOperationCount} gated");
+        DrawStatusLine(localization["runtime.action_tools"], model.ActionOperationsEnabled, model.ActionOperationsStatusText);
+        DrawStatusLine(localization["runtime.unsafe_tools"], model.UnsafeOperationsEnabled, model.UnsafeOperationsStatusText);
+        DrawKeyValue(localization["runtime.operations"], localization.Format("runtime.operations_value", model.OperationCount, model.ExposedOperationCount, model.BlockedOperationCount));
 
         ImGui.Spacing();
         bool actionOperationsEnabled = model.ActionOperationsEnabled;
-        if (ImGui.Checkbox("Enable action operations over CLI/MCP", ref actionOperationsEnabled))
+        if (ImGui.Checkbox(localization["runtime.enable_actions"], ref actionOperationsEnabled))
         {
             configurationStore.Update(configuration =>
                 configuration.EnableActionOperations = actionOperationsEnabled);
             RefreshModel(force: true);
         }
 
-        ImGui.TextWrapped("Observation tools stay live. Actions remain default-off until you explicitly expose them here.");
+        ImGui.TextWrapped(localization["runtime.enable_actions_hint"]);
 
         bool unsafeOperationsEnabled = model.UnsafeOperationsEnabled;
-        if (ImGui.Checkbox("Enable unsafe integration tools (developer only)", ref unsafeOperationsEnabled))
+        if (ImGui.Checkbox(localization["runtime.enable_unsafe"], ref unsafeOperationsEnabled))
         {
             configurationStore.Update(configuration =>
                 configuration.EnableUnsafeOperations = unsafeOperationsEnabled);
             RefreshModel(force: true);
         }
 
-        ImGui.TextWrapped("Unsafe tools can invoke arbitrary plugin IPC functions. Leave them off unless you are deliberately debugging another plugin.");
+        ImGui.TextWrapped(localization["runtime.enable_unsafe_hint"]);
         ImGui.EndChild();
     }
 
@@ -179,21 +224,21 @@ public sealed class PluginConfigWindow
             return;
         }
 
-        DrawPanelTitle("Command Desk", "Copy the two entrypoints people need most often.");
+        DrawPanelTitle(localization["quick.title"], localization["quick.subtitle"]);
         ImGui.Columns(2, "QuickStartColumns", false);
         DrawCommandCard(
-            "CLI quick check",
-            "Reads the live player snapshot from the active plugin instance.",
+            localization["quick.cli_title"],
+            localization["quick.cli_desc"],
             ToCommandSummary(model.CliCommand),
             model.CliCommand,
-            "Copy Player Context Command");
+            localization["quick.cli_button"]);
         ImGui.NextColumn();
         DrawCommandCard(
-            "MCP serve",
-            "Starts the local MCP bridge with the plugin-discovered live pipe.",
+            localization["quick.mcp_title"],
+            localization["quick.mcp_desc"],
             ToCommandSummary(model.McpCommand),
             model.McpCommand,
-            "Copy MCP Serve Command");
+            localization["quick.mcp_button"]);
         ImGui.Columns(1);
         ImGui.EndChild();
     }
@@ -201,7 +246,7 @@ public sealed class PluginConfigWindow
     private void DrawAdvancedDetails()
     {
         ImGui.Spacing();
-        if (!ImGui.CollapsingHeader("Advanced details", ref showAdvancedDetails))
+        if (!ImGui.CollapsingHeader(localization["advanced.header"], ref showAdvancedDetails))
             return;
 
         if (!ImGui.BeginChild("AdvancedPanel", new Vector2(0f, 132f), true))
@@ -210,11 +255,11 @@ public sealed class PluginConfigWindow
             return;
         }
 
-        DrawKeyValue("Pipe", model.PipeName);
-        DrawKeyValue("CLI command", model.CliCommand);
-        DrawKeyValue("MCP serve", model.McpCommand);
+        DrawKeyValue(localization["advanced.pipe"], model.PipeName);
+        DrawKeyValue(localization["advanced.cli_command"], model.CliCommand);
+        DrawKeyValue(localization["advanced.mcp_serve"], model.McpCommand);
         if (!string.IsNullOrWhiteSpace(model.McpServerCommand))
-            DrawKeyValue("HTTP command", model.McpServerCommand);
+            DrawKeyValue(localization["advanced.http_command"], model.McpServerCommand);
         if (!string.IsNullOrWhiteSpace(model.McpServerErrorText))
             DrawWrappedStatus(DangerColor, model.McpServerErrorText);
 
@@ -229,12 +274,12 @@ public sealed class PluginConfigWindow
             return;
         }
 
-        DrawPanelTitle("HTTP Server", "Stable MCP endpoint for clients that should not care about pipe names.");
-        DrawKeyValue("Endpoint", model.McpServerEndpoint);
-        DrawStatusLine("HTTP state", model.McpServerRunning, model.McpServerStatusText);
+        DrawPanelTitle(localization["server.title"], localization["server.subtitle"]);
+        DrawKeyValue(localization["server.endpoint"], model.McpServerEndpoint);
+        DrawStatusLine(localization["server.http_state"], model.McpServerRunning, model.McpServerStatusText);
 
         bool autoStartHttpServerOnLoad = model.AutoStartHttpServerOnLoad;
-        if (ImGui.Checkbox("Start MCP HTTP Server automatically on plugin load", ref autoStartHttpServerOnLoad))
+        if (ImGui.Checkbox(localization["server.auto_start"], ref autoStartHttpServerOnLoad))
         {
             configurationStore.Update(configuration =>
                 configuration.AutoStartHttpServerOnLoad = autoStartHttpServerOnLoad);
@@ -244,25 +289,25 @@ public sealed class PluginConfigWindow
         ImGui.Spacing();
         if (!model.McpServerRunning)
         {
-            if (ImGui.Button("Start MCP HTTP Server", new Vector2(220f, 0f)))
+            if (ImGui.Button(localization["server.start"], new Vector2(220f, 0f)))
             {
                 mcpServerController.Start();
                 nextRefreshAt = 0;
             }
         }
-        else if (ImGui.Button("Stop MCP HTTP Server", new Vector2(220f, 0f)))
+        else if (ImGui.Button(localization["server.stop"], new Vector2(220f, 0f)))
         {
             mcpServerController.Stop();
             nextRefreshAt = 0;
         }
 
         ImGui.SameLine();
-        if (ImGui.Button("Copy MCP Endpoint", new Vector2(180f, 0f)))
+        if (ImGui.Button(localization["server.copy_endpoint"], new Vector2(180f, 0f)))
             ImGui.SetClipboardText(model.McpServerEndpoint);
 
         if (!string.IsNullOrWhiteSpace(model.McpServerCommand))
         {
-            if (ImGui.Button("Copy MCP Server Command", new Vector2(220f, 0f)))
+            if (ImGui.Button(localization["server.copy_command"], new Vector2(220f, 0f)))
                 ImGui.SetClipboardText(model.McpServerCommand);
         }
 
@@ -278,17 +323,17 @@ public sealed class PluginConfigWindow
             return;
         }
 
-        DrawPanelTitle("Operations", "Filter the exported surface before you hand the plugin to another client.");
+        DrawPanelTitle(localization["operations.title"], localization["operations.subtitle"]);
         DrawKeyValue(
-            "Catalog",
-            $"{model.OperationCount} total  |  {model.ActionOperationCount} action  |  {model.UnsafeOperationCount} unsafe  |  {model.BlockedOperationCount} gated");
+            localization["operations.catalog"],
+            localization.Format("operations.catalog_value", model.OperationCount, model.ActionOperationCount, model.UnsafeOperationCount, model.BlockedOperationCount));
 
         ImGui.SetNextItemWidth(280f);
-        ImGui.InputText("Search", ref operationFilter, 128);
+        ImGui.InputText(localization["operations.search"], ref operationFilter, 128);
         ImGui.SameLine();
-        ImGui.Checkbox("Blocked only", ref showBlockedOnly);
+        ImGui.Checkbox(localization["operations.blocked_only"], ref showBlockedOnly);
         ImGui.SameLine();
-        ImGui.Checkbox("Reader-backed only", ref showReaderBackedOnly);
+        ImGui.Checkbox(localization["operations.reader_only"], ref showReaderBackedOnly);
 
         IReadOnlyList<PluginConfigOperationRow> operations = model.Operations;
         const ImGuiTableFlags tableFlags =
@@ -301,10 +346,10 @@ public sealed class PluginConfigWindow
 
         if (ImGui.BeginTable("OperationsTable", 4, tableFlags, new Vector2(0f, 0f)))
         {
-            ImGui.TableSetupColumn("Operation", ImGuiTableColumnFlags.WidthStretch, 0.27f);
-            ImGui.TableSetupColumn("Access", ImGuiTableColumnFlags.WidthStretch, 0.23f);
-            ImGui.TableSetupColumn("State", ImGuiTableColumnFlags.WidthStretch, 0.20f);
-            ImGui.TableSetupColumn("Summary", ImGuiTableColumnFlags.WidthStretch, 0.30f);
+            ImGui.TableSetupColumn(localization["operations.column.operation"], ImGuiTableColumnFlags.WidthStretch, 0.27f);
+            ImGui.TableSetupColumn(localization["operations.column.access"], ImGuiTableColumnFlags.WidthStretch, 0.23f);
+            ImGui.TableSetupColumn(localization["operations.column.state"], ImGuiTableColumnFlags.WidthStretch, 0.20f);
+            ImGui.TableSetupColumn(localization["operations.column.summary"], ImGuiTableColumnFlags.WidthStretch, 0.30f);
             ImGui.TableHeadersRow();
 
             int visibleCount = 0;
@@ -319,9 +364,9 @@ public sealed class PluginConfigWindow
 
                 ImGui.TableSetColumnIndex(0);
                 ImGui.TextUnformatted(operation.OperationId);
-                DrawInlineTag(operation.IsActionOperation ? "ACTION" : "OBSERVE", operation.IsActionOperation ? WarningColor : SuccessColor);
+                DrawInlineTag(operation.IsActionOperation ? localization["operations.tag_action"] : localization["operations.tag_observe"], operation.IsActionOperation ? WarningColor : SuccessColor);
                 if (operation.IsUnsafeOperation)
-                    DrawInlineTag("UNSAFE", DangerColor);
+                    DrawInlineTag(localization["operations.tag_unsafe"], DangerColor);
 
                 ImGui.TableSetColumnIndex(1);
                 if (!string.IsNullOrWhiteSpace(operation.CliCommandText))
@@ -337,7 +382,7 @@ public sealed class PluginConfigWindow
                 if (string.IsNullOrWhiteSpace(operation.ReaderStatusText) &&
                     string.IsNullOrWhiteSpace(operation.ExposureStatusText))
                 {
-                    ImGui.TextColored(SuccessColor, "Ready to expose");
+                    ImGui.TextColored(SuccessColor, localization["operations.ready_to_expose"]);
                 }
 
                 ImGui.TableSetColumnIndex(3);
@@ -348,7 +393,7 @@ public sealed class PluginConfigWindow
             {
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
-                ImGui.TextColored(MutedColor, "No operations matched the current filter.");
+                ImGui.TextColored(MutedColor, localization["operations.empty"]);
             }
 
             ImGui.EndTable();
