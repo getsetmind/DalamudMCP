@@ -94,7 +94,6 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
             if (framework.IsInFrameworkUpdateThread)
             {
                 return SendEventCore(
-                    clientState,
                     gameGui,
                     addonName,
                     eventTypeName,
@@ -106,7 +105,6 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
 
             return await framework.RunOnFrameworkThread(
                     () => SendEventCore(
-                        clientState,
                         gameGui,
                         addonName,
                         eventTypeName,
@@ -120,7 +118,6 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
 
     [SupportedOSPlatform("windows")]
     private static unsafe AddonEventResult SendEventCore(
-        IClientState clientState,
         IGameGui gameGui,
         string addonName,
         string eventTypeName,
@@ -130,19 +127,6 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!clientState.IsLoggedIn)
-        {
-            return new AddonEventResult(
-                addonName,
-                eventTypeName,
-                eventParam ?? -1,
-                collisionIndex,
-                nodeId,
-                false,
-                "not_logged_in",
-                "Player is not logged in.");
-        }
-
         if (!TryParseEventType(eventTypeName, out AddonEventType eventType))
         {
             return new AddonEventResult(

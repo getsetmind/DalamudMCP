@@ -37,9 +37,9 @@ public sealed partial class AddonTreeOperation
         ArgumentNullException.ThrowIfNull(gameGui);
 
         executor = CreateDalamudExecutor(framework, clientState, gameGui);
-        isReadyProvider = () => clientState.IsLoggedIn;
-        detailProvider = () => clientState.IsLoggedIn ? "ready" : "not_logged_in";
-        unavailableDetail = "not_logged_in";
+        isReadyProvider = static () => true;
+        detailProvider = static () => "ready";
+        unavailableDetail = "ready";
     }
 
     internal AddonTreeOperation(
@@ -99,23 +99,20 @@ public sealed partial class AddonTreeOperation
             string addonName = NormalizeAddonName(request.AddonName);
 
             if (framework.IsInFrameworkUpdateThread)
-                return ReadCurrentCore(clientState, gameGui, addonName, cancellationToken);
+                return ReadCurrentCore(gameGui, addonName, cancellationToken);
 
-            return await framework.RunOnFrameworkThread(() => ReadCurrentCore(clientState, gameGui, addonName, cancellationToken))
+            return await framework.RunOnFrameworkThread(() => ReadCurrentCore(gameGui, addonName, cancellationToken))
                 .ConfigureAwait(false);
         };
     }
 
     [SupportedOSPlatform("windows")]
     private static unsafe AddonTreeSnapshot ReadCurrentCore(
-        IClientState clientState,
         IGameGui gameGui,
         string addonName,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!clientState.IsLoggedIn)
-            throw new InvalidOperationException("Addon tree is not available because the local player is not logged in.");
 
         AtkUnitBasePtr addon = gameGui.GetAddonByName(addonName, 1);
         if (addon.IsNull || !addon.IsReady)

@@ -93,7 +93,6 @@ public sealed partial class AddonInputOperation : IOperation<AddonInputOperation
             if (framework.IsInFrameworkUpdateThread)
             {
                 return SendInputCore(
-                    clientState,
                     gameGui,
                     addonName,
                     inputTypeName,
@@ -105,7 +104,6 @@ public sealed partial class AddonInputOperation : IOperation<AddonInputOperation
 
             return await framework.RunOnFrameworkThread(
                     () => SendInputCore(
-                        clientState,
                         gameGui,
                         addonName,
                         inputTypeName,
@@ -119,7 +117,6 @@ public sealed partial class AddonInputOperation : IOperation<AddonInputOperation
 
     [SupportedOSPlatform("windows")]
     private static unsafe AddonInputResult SendInputCore(
-        IClientState clientState,
         IGameGui gameGui,
         string addonName,
         string inputTypeName,
@@ -129,9 +126,6 @@ public sealed partial class AddonInputOperation : IOperation<AddonInputOperation
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!clientState.IsLoggedIn)
-            return new AddonInputResult(addonName, inputTypeName, inputId, auxiliaryState, false, "not_logged_in", "Player is not logged in.");
-
         if (!TryParseInputType(inputTypeName, out AddonInputType inputType))
         {
             return new AddonInputResult(

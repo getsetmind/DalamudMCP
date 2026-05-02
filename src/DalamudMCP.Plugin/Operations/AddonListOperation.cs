@@ -37,9 +37,9 @@ public sealed partial class AddonListOperation
         ArgumentNullException.ThrowIfNull(gameGui);
 
         executor = CreateDalamudExecutor(framework, clientState, gameGui);
-        isReadyProvider = () => clientState.IsLoggedIn;
-        detailProvider = () => clientState.IsLoggedIn ? "ready" : "not_logged_in";
-        unavailableDetail = "not_logged_in";
+        isReadyProvider = static () => true;
+        detailProvider = static () => "ready";
+        unavailableDetail = "ready";
     }
 
     internal AddonListOperation(
@@ -94,22 +94,19 @@ public sealed partial class AddonListOperation
             cancellationToken.ThrowIfCancellationRequested();
 
             if (framework.IsInFrameworkUpdateThread)
-                return ReadCurrentCore(clientState, gameGui, cancellationToken);
+                return ReadCurrentCore(gameGui, cancellationToken);
 
-            return await framework.RunOnFrameworkThread(() => ReadCurrentCore(clientState, gameGui, cancellationToken))
+            return await framework.RunOnFrameworkThread(() => ReadCurrentCore(gameGui, cancellationToken))
                 .ConfigureAwait(false);
         };
     }
 
     [SupportedOSPlatform("windows")]
     private static unsafe AddonSummary[] ReadCurrentCore(
-        IClientState clientState,
         IGameGui gameGui,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!clientState.IsLoggedIn)
-            throw new InvalidOperationException("Addon list is not available because the local player is not logged in.");
 
         DateTimeOffset capturedAt = DateTimeOffset.UtcNow;
         Dictionary<string, AddonSummary> summaries = new(StringComparer.OrdinalIgnoreCase);
