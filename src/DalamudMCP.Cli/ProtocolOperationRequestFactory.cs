@@ -1,8 +1,8 @@
 using System.Buffers;
 using System.Globalization;
 using System.Text.Json;
-using Manifold.Cli;
 using DalamudMCP.Protocol;
+using Manifold.Cli;
 
 namespace DalamudMCP.Cli;
 

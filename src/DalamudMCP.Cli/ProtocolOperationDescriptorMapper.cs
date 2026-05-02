@@ -1,6 +1,6 @@
 using System.Text.Json;
-using Manifold;
 using DalamudMCP.Protocol;
+using Manifold;
 
 namespace DalamudMCP.Cli;
 

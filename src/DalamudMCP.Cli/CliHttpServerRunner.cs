@@ -1,6 +1,6 @@
 using System.Text.Json;
-using Manifold.Cli;
 using DalamudMCP.Protocol;
+using Manifold.Cli;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
