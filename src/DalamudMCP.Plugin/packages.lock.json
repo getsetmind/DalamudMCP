@@ -18,13 +18,13 @@
         "type": "Direct",
         "requested": "[1.0.0, )",
         "resolved": "1.0.0",
-        "contentHash": "dizOsjJWee2g/Mf3BEI9WHNlqxJkoEGB22+b36odQ9sPWLQ+v4poDM6TqTFyMgfMwQMvfFzP1yfojsVhrJWMew=="
+        "contentHash": "82Q9vTwg3DJ3RKr2lSNaI2Gh9p/t1HadBTdlPKmIuIrduj/nYyL5q/C2FJBnviZ74cWT07rm29QeKq656Vdoaw=="
       },
       "Manifold.Generators": {
         "type": "Direct",
         "requested": "[1.0.0, )",
         "resolved": "1.0.0",
-        "contentHash": "sFoupcCcxZPX2+HF5n1ILUNoXwHSHJ0WlbgtK/DkeMpW8VTNXZK6gT6GhRG2vMNtu1oPIz/Lt3VA8ZpWB7Bv1A=="
+        "contentHash": "UdiHxSdDc5J0lQbHCVn0vTLaz5yBgMg5qIaO0IV/uwvzRo9fb8wswjpUuXliEvjM4M+x8NDpv0Zh/7jzTM38eg=="
       },
       "MemoryPack": {
         "type": "Direct",

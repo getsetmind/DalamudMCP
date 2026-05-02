@@ -33,12 +33,12 @@
       "Manifold": {
         "type": "Transitive",
         "resolved": "1.0.0",
-        "contentHash": "dizOsjJWee2g/Mf3BEI9WHNlqxJkoEGB22+b36odQ9sPWLQ+v4poDM6TqTFyMgfMwQMvfFzP1yfojsVhrJWMew=="
+        "contentHash": "82Q9vTwg3DJ3RKr2lSNaI2Gh9p/t1HadBTdlPKmIuIrduj/nYyL5q/C2FJBnviZ74cWT07rm29QeKq656Vdoaw=="
       },
       "Manifold.Cli": {
         "type": "Transitive",
         "resolved": "1.0.0",
-        "contentHash": "nY1esB+3HHUB28U5i+AjNDGbHLAMwjWwLXDEfCOKFpwmfB1Wf/sIyca60Gl60mxieJ2gc3/xw01toL9Ol1T3MQ==",
+        "contentHash": "97JK5XP5Thu768byGBbpkEq68lMWCrOH1KSIBaKKRm6o24b6m5EHb7Hz5J4E8+WkRR2vaI0VZTD2WoPsXUbrHA==",
         "dependencies": {
           "Manifold": "1.0.0"
         }
