@@ -1,5 +1,5 @@
 using System.Text.Json;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Protocol;
 
 namespace DalamudMCP.Cli;
@@ -89,3 +89,6 @@ internal static class ProtocolOperationDescriptorMapper
             : elementType;
     }
 }
+
+
+

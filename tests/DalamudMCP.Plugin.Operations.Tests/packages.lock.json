@@ -13,6 +13,12 @@
           "Microsoft.Testing.Platform": "2.0.2"
         }
       },
+      "Manifold": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "dizOsjJWee2g/Mf3BEI9WHNlqxJkoEGB22+b36odQ9sPWLQ+v4poDM6TqTFyMgfMwQMvfFzP1yfojsVhrJWMew=="
+      },
       "Microsoft.Extensions.DependencyInjection": {
         "type": "Direct",
         "requested": "[10.0.0, )",
@@ -190,15 +196,12 @@
       "DalamudMCP": {
         "type": "Project",
         "dependencies": {
-          "DalamudMCP.Framework": "[1.0.0, )",
           "DalamudMCP.Protocol": "[1.0.0, )",
           "DalamudPackager": "[15.0.0, )",
+          "Manifold": "[1.0.0, )",
           "MemoryPack": "[1.21.4, )",
           "Microsoft.Extensions.DependencyInjection": "[10.0.0, )"
         }
-      },
-      "dalamudmcp.framework": {
-        "type": "Project"
       },
       "dalamudmcp.protocol": {
         "type": "Project",

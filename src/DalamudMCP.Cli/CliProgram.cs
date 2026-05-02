@@ -1,4 +1,4 @@
-using DalamudMCP.Framework.Cli;
+using Manifold.Cli;
 using DalamudMCP.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -83,3 +83,6 @@ public static class CliProgram
         return await application.ExecuteAsync(options.CommandArguments, output, error, cancellationToken).ConfigureAwait(false);
     }
 }
+
+
+

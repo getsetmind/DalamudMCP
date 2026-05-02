@@ -1,5 +1,5 @@
 using System.Text.Json;
-using DalamudMCP.Framework.Cli;
+using Manifold.Cli;
 using DalamudMCP.Protocol;
 
 namespace DalamudMCP.Cli;
@@ -77,3 +77,6 @@ public sealed class RemoteCliInvoker : ICliInvoker
             rawJsonPayload);
     }
 }
+
+
+

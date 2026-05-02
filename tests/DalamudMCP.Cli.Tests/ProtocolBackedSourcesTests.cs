@@ -1,5 +1,5 @@
 using System.Text.Json;
-using DalamudMCP.Framework.Cli;
+using Manifold.Cli;
 using DalamudMCP.Protocol;
 
 namespace DalamudMCP.Cli.Tests;
@@ -224,3 +224,6 @@ public sealed class ProtocolBackedSourcesTests
         }
     }
 }
+
+
+

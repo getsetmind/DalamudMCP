@@ -1,4 +1,4 @@
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Plugin.Readers;
 
 namespace DalamudMCP.Plugin.Ui;
@@ -424,3 +424,6 @@ internal sealed class PluginConfigOperationRow
         }
     }
 }
+
+
+

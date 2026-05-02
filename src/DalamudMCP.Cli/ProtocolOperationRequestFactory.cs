@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Globalization;
 using System.Text.Json;
-using DalamudMCP.Framework.Cli;
+using Manifold.Cli;
 using DalamudMCP.Protocol;
 
 namespace DalamudMCP.Cli;
@@ -372,3 +372,6 @@ internal static class ProtocolOperationRequestFactory
             : value[start..(end + 1)];
     }
 }
+
+
+

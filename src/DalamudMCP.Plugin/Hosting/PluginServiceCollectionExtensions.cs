@@ -1,8 +1,8 @@
 using System.Runtime.Versioning;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
-using DalamudMCP.Framework.Generated;
+using Manifold;
+using Manifold.Generated;
 using DalamudMCP.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -67,3 +67,6 @@ public static class PluginServiceCollectionExtensions
         return services.BuildServiceProvider();
     }
 }
+
+
+

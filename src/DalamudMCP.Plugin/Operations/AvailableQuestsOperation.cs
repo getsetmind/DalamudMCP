@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.Versioning;
 using Dalamud.Game;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -360,3 +360,6 @@ public sealed partial record AvailableQuestsSnapshot(
     string? NameContains,
     AvailableQuest[] Quests,
     string SummaryText);
+
+
+

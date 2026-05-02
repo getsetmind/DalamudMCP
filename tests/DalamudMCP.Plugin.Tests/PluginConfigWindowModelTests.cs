@@ -1,4 +1,4 @@
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Plugin.Ui;
 
@@ -282,3 +282,6 @@ public sealed class PluginConfigWindowModelTests
         public string Detail => throw new InvalidOperationException("Not on main thread!");
     }
 }
+
+
+

@@ -5,7 +5,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Protocol;
 using MemoryPack;
 
@@ -277,3 +277,6 @@ public sealed partial record MoveToEntityResult(
     string? ObjectKind,
     MoveDestination? Destination,
     string SummaryText);
+
+
+

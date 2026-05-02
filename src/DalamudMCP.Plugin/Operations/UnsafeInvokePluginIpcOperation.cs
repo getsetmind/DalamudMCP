@@ -4,7 +4,7 @@ using System.Runtime.Versioning;
 using System.Text.Json;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Protocol;
 using MemoryPack;
 
@@ -389,3 +389,6 @@ public sealed partial record UnsafeInvokePluginIpcResult(
     string ResultKind,
     string? ResultJson,
     string SummaryText);
+
+
+

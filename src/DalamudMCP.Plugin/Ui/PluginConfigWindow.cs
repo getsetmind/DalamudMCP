@@ -1,6 +1,6 @@
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Plugin.Configuration;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
@@ -445,3 +445,6 @@ public sealed class PluginConfigWindow
             : command;
     }
 }
+
+
+

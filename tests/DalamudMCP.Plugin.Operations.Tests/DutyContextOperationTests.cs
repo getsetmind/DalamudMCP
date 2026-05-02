@@ -1,4 +1,4 @@
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Protocol;
 
 namespace DalamudMCP.Plugin.Operations.Tests;
@@ -71,3 +71,6 @@ public sealed class DutyContextOperationTests
         Assert.Equal("not_logged_in", operation.Detail);
     }
 }
+
+
+

@@ -32,7 +32,7 @@ public static class CliMcpServerRunner
     {
         using IHost host = BuildHost(options);
         await host.RunAsync(cancellationToken).ConfigureAwait(false);
-        return DalamudMCP.Framework.Cli.CliExitCodes.Success;
+        return Manifold.Cli.CliExitCodes.Success;
     }
 
     private static DescribeOperationsResponse LoadCatalog(NamedPipeProtocolClient protocolClient)
@@ -43,3 +43,6 @@ public static class CliMcpServerRunner
             .GetResult();
     }
 }
+
+
+

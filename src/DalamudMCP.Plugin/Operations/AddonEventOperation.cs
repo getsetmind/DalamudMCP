@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using MemoryPack;
@@ -1008,3 +1008,6 @@ internal struct NativeMouseInput
     public uint Time;
     public nint DwExtraInfo;
 }
+
+
+

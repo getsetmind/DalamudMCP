@@ -4,7 +4,7 @@ using System.Runtime.Versioning;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
@@ -264,3 +264,6 @@ public sealed partial record InteractWithTargetResult(
     string? ObjectKind,
     double? Distance,
     string SummaryText);
+
+
+

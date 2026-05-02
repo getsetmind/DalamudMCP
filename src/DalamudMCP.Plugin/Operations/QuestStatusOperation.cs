@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.Versioning;
 using Dalamud.Game;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -334,3 +334,6 @@ public sealed partial record QuestStatusSnapshot(
     string Query,
     QuestStatusEntrySnapshot[] Matches,
     string SummaryText);
+
+
+

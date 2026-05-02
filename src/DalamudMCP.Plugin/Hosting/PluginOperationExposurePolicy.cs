@@ -1,4 +1,4 @@
-using DalamudMCP.Framework;
+using Manifold;
 
 namespace DalamudMCP.Plugin.Hosting;
 
@@ -69,3 +69,6 @@ internal static class PluginOperationExposurePolicy
             .ToArray();
     }
 }
+
+
+

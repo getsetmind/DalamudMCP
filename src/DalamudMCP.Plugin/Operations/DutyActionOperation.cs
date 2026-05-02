@@ -1,6 +1,6 @@
 using System.Runtime.Versioning;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
@@ -150,3 +150,6 @@ public sealed partial record DutyActionResult(
     string? Reason,
     uint? ActionId,
     string SummaryText);
+
+
+

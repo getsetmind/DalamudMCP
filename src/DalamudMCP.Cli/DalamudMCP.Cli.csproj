@@ -8,10 +8,11 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Manifold" Version="1.0.0" />
+    <PackageReference Include="Manifold.Cli" Version="1.0.0" />
     <PackageReference Include="ModelContextProtocol" Version="1.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DalamudMCP.Protocol\DalamudMCP.Protocol.csproj" />
-    <ProjectReference Include="..\DalamudMCP.Framework.Cli\DalamudMCP.Framework.Cli.csproj" />
   </ItemGroup>
 </Project>

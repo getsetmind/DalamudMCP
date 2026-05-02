@@ -1,6 +1,6 @@
 using System.Runtime.Versioning;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
 using MemoryPack;
@@ -161,3 +161,6 @@ public sealed partial record SessionStatusSnapshot(
     SessionRuntimeState State,
     string SummaryText,
     IReadOnlyList<SessionReaderStatus> Readers);
+
+
+

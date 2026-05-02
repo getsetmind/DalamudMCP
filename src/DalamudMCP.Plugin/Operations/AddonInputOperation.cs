@@ -1,7 +1,7 @@
 using System.Runtime.Versioning;
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using MemoryPack;
@@ -344,3 +344,6 @@ public sealed partial record AddonInputResult(
     bool Succeeded,
     string? Reason,
     string SummaryText);
+
+
+

@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Runtime.Versioning;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
 using MemoryPack;
@@ -186,3 +186,6 @@ public sealed partial record PlayerContextSnapshot(
     int JobLevel,
     string TerritoryName,
     PlayerPosition Position);
+
+
+

@@ -1,4 +1,4 @@
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Protocol;
 
 namespace DalamudMCP.Plugin.Hosting;
@@ -108,3 +108,6 @@ public static class ProtocolOperationCatalog
         return (valueKind, isNullable, isArray);
     }
 }
+
+
+

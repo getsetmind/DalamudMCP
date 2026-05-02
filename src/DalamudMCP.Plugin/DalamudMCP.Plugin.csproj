@@ -8,14 +8,11 @@
     <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Manifold" Version="1.0.0" />
+    <PackageReference Include="Manifold.Generators" Version="1.0.0" PrivateAssets="all" />
     <PackageReference Include="MemoryPack" Version="1.21.4" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
-    <ProjectReference Include="..\DalamudMCP.Framework\DalamudMCP.Framework.csproj" />
     <ProjectReference Include="..\DalamudMCP.Protocol\DalamudMCP.Protocol.csproj" />
-    <ProjectReference Include="..\DalamudMCP.Framework.Generators\DalamudMCP.Framework.Generators.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false"
-                      PrivateAssets="all" />
   </ItemGroup>
   <Target Name="BundleCliOutput" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
     <MSBuild Projects="..\DalamudMCP.Cli\DalamudMCP.Cli.csproj"
