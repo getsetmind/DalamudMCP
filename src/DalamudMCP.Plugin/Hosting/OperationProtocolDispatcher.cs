@@ -1,5 +1,5 @@
 using System.Reflection;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Protocol;
 
 namespace DalamudMCP.Plugin.Hosting;

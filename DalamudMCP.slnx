@@ -3,18 +3,10 @@
     <Project Path="src/DalamudMCP.Cli/DalamudMCP.Cli.csproj" />
     <Project Path="src/DalamudMCP.Plugin/DalamudMCP.Plugin.csproj" />
     <Project Path="src/DalamudMCP.Protocol/DalamudMCP.Protocol.csproj" />
-    <Project Path="src/DalamudMCP.Framework/DalamudMCP.Framework.csproj" />
-    <Project Path="src/DalamudMCP.Framework.Cli/DalamudMCP.Framework.Cli.csproj" />
-    <Project Path="src/DalamudMCP.Framework.Generators/DalamudMCP.Framework.Generators.csproj" />
-    <Project Path="src/DalamudMCP.Framework.Mcp/DalamudMCP.Framework.Mcp.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DalamudMCP.Cli.Tests/DalamudMCP.Cli.Tests.csproj" />
     <Project Path="tests/DalamudMCP.Plugin.Operations.Tests/DalamudMCP.Plugin.Operations.Tests.csproj" />
-    <Project Path="tests/DalamudMCP.Framework.Tests/DalamudMCP.Framework.Tests.csproj" />
-    <Project Path="tests/DalamudMCP.Framework.Cli.Tests/DalamudMCP.Framework.Cli.Tests.csproj" />
-    <Project Path="tests/DalamudMCP.Framework.Generators.Tests/DalamudMCP.Framework.Generators.Tests.csproj" />
-    <Project Path="tests/DalamudMCP.Framework.Mcp.Tests/DalamudMCP.Framework.Mcp.Tests.csproj" />
     <Project Path="tests/DalamudMCP.Plugin.Tests/DalamudMCP.Plugin.Tests.csproj" />
     <Project Path="tests/DalamudMCP.Protocol.Tests/DalamudMCP.Protocol.Tests.csproj" />
   </Folder>

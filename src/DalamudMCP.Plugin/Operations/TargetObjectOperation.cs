@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Runtime.Versioning;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Protocol;
 using MemoryPack;
 

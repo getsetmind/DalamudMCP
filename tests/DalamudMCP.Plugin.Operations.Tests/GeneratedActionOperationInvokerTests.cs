@@ -1,5 +1,5 @@
-using DalamudMCP.Framework;
-using DalamudMCP.Framework.Generated;
+using Manifold;
+using Manifold.Generated;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DalamudMCP.Plugin.Operations.Tests;

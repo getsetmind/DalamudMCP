@@ -14,6 +14,18 @@
         "resolved": "1.2.39",
         "contentHash": "fcFN01tDTIQqDuTwr1jUQK/geofiwjG5DycJQOnC72i1SsLAk1ELe+apBOuZ11UMQG8YKFZG1FgvjZPbqHyatg=="
       },
+      "Manifold": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "82Q9vTwg3DJ3RKr2lSNaI2Gh9p/t1HadBTdlPKmIuIrduj/nYyL5q/C2FJBnviZ74cWT07rm29QeKq656Vdoaw=="
+      },
+      "Manifold.Generators": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "UdiHxSdDc5J0lQbHCVn0vTLaz5yBgMg5qIaO0IV/uwvzRo9fb8wswjpUuXliEvjM4M+x8NDpv0Zh/7jzTM38eg=="
+      },
       "MemoryPack": {
         "type": "Direct",
         "requested": "[1.21.4, )",
@@ -47,9 +59,6 @@
         "type": "Transitive",
         "resolved": "10.0.0",
         "contentHash": "L3AdmZ1WOK4XXT5YFPEwyt0ep6l8lGIPs7F5OOBZc77Zqeo01Of7XXICy47628sdVl0v/owxYJTe86DTgFwKCA=="
-      },
-      "dalamudmcp.framework": {
-        "type": "Project"
       },
       "dalamudmcp.protocol": {
         "type": "Project",

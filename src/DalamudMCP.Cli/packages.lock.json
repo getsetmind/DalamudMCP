@@ -2,6 +2,21 @@
   "version": 1,
   "dependencies": {
     "net10.0": {
+      "Manifold": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "82Q9vTwg3DJ3RKr2lSNaI2Gh9p/t1HadBTdlPKmIuIrduj/nYyL5q/C2FJBnviZ74cWT07rm29QeKq656Vdoaw=="
+      },
+      "Manifold.Cli": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "97JK5XP5Thu768byGBbpkEq68lMWCrOH1KSIBaKKRm6o24b6m5EHb7Hz5J4E8+WkRR2vaI0VZTD2WoPsXUbrHA==",
+        "dependencies": {
+          "Manifold": "1.0.0"
+        }
+      },
       "ModelContextProtocol": {
         "type": "Direct",
         "requested": "[1.1.0, )",
@@ -41,15 +56,6 @@
         "contentHash": "3E/qGSPxAnuenD8uBT2NsHCP91ztn4WC9SfV7miKjpzDYQgVvGwbxnPhhZ8PAvltYWJ/P4wWbRmJ+2M5rZkrDQ==",
         "dependencies": {
           "Microsoft.Extensions.AI.Abstractions": "10.3.0"
-        }
-      },
-      "dalamudmcp.framework": {
-        "type": "Project"
-      },
-      "dalamudmcp.framework.cli": {
-        "type": "Project",
-        "dependencies": {
-          "DalamudMCP.Framework": "[1.0.0, )"
         }
       },
       "dalamudmcp.protocol": {

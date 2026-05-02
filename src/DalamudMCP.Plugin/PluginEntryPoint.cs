@@ -1,7 +1,7 @@
 using System.Runtime.Versioning;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Plugin.Configuration;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Plugin.Ui;

@@ -1,4 +1,4 @@
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
 

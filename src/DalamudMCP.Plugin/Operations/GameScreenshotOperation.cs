@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
 using MemoryPack;

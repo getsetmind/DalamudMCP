@@ -1,4 +1,4 @@
-using DalamudMCP.Framework;
+using Manifold;
 
 namespace DalamudMCP.Plugin.Hosting;
 

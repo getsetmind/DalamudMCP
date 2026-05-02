@@ -12,6 +12,7 @@
     <DalamudLibPath Condition="'$(DALAMUD_HOME)' != ''">$(DALAMUD_HOME)\</DalamudLibPath>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Manifold" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="xunit.v3.mtp-v2" Version="3.2.2" />
   </ItemGroup>
@@ -19,7 +20,6 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DalamudMCP.Framework\DalamudMCP.Framework.csproj" />
     <ProjectReference Include="..\..\src\DalamudMCP.Plugin\DalamudMCP.Plugin.csproj" />
     <ProjectReference Include="..\..\src\DalamudMCP.Protocol\DalamudMCP.Protocol.csproj" />
   </ItemGroup>

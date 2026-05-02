@@ -3,7 +3,7 @@ using System.Numerics;
 using System.Runtime.Versioning;
 using Dalamud.Game.ClientState.Fates;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
 using MemoryPack;

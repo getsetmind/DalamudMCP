@@ -1,5 +1,5 @@
-using DalamudMCP.Framework.Cli;
 using DalamudMCP.Protocol;
+using Manifold.Cli;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DalamudMCP.Cli;

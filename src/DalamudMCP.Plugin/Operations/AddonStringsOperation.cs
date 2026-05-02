@@ -3,7 +3,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Plugin.Services;
-using DalamudMCP.Framework;
+using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
 using MemoryPack;

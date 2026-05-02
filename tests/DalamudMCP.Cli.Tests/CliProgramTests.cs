@@ -17,7 +17,7 @@ public sealed class CliProgramTests : IDisposable
 
         int exitCode = await CliProgram.RunAsync(["session", "status"], output, error, TestContext.Current.CancellationToken);
 
-        Assert.Equal(DalamudMCP.Framework.Cli.CliExitCodes.Unavailable, exitCode);
+        Assert.Equal(Manifold.Cli.CliExitCodes.Unavailable, exitCode);
         Assert.Equal(string.Empty, output.ToString());
         Assert.Contains("No live plugin connection was found", error.ToString(), StringComparison.Ordinal);
     }
@@ -30,7 +30,7 @@ public sealed class CliProgramTests : IDisposable
 
         int exitCode = await CliProgram.RunAsync(["session", "status", "--json"], output, error, TestContext.Current.CancellationToken);
 
-        Assert.Equal(DalamudMCP.Framework.Cli.CliExitCodes.Unavailable, exitCode);
+        Assert.Equal(Manifold.Cli.CliExitCodes.Unavailable, exitCode);
         Assert.Equal(string.Empty, output.ToString());
         Assert.Contains("No live plugin connection was found", error.ToString(), StringComparison.Ordinal);
     }
@@ -43,7 +43,7 @@ public sealed class CliProgramTests : IDisposable
 
         int exitCode = await CliProgram.RunAsync(["player", "context"], output, error, TestContext.Current.CancellationToken);
 
-        Assert.Equal(DalamudMCP.Framework.Cli.CliExitCodes.Unavailable, exitCode);
+        Assert.Equal(Manifold.Cli.CliExitCodes.Unavailable, exitCode);
         Assert.Equal(string.Empty, output.ToString());
         Assert.Contains("No live plugin connection was found", error.ToString(), StringComparison.Ordinal);
     }
@@ -56,7 +56,7 @@ public sealed class CliProgramTests : IDisposable
 
         int exitCode = await CliProgram.RunAsync(["duty", "context"], output, error, TestContext.Current.CancellationToken);
 
-        Assert.Equal(DalamudMCP.Framework.Cli.CliExitCodes.Unavailable, exitCode);
+        Assert.Equal(Manifold.Cli.CliExitCodes.Unavailable, exitCode);
         Assert.Equal(string.Empty, output.ToString());
         Assert.Contains("No live plugin connection was found", error.ToString(), StringComparison.Ordinal);
     }
@@ -80,7 +80,7 @@ public sealed class CliProgramTests : IDisposable
         int exitCode = await CliProgram.RunAsync(["--pipe", pipeName, "player", "context"], output, error, TestContext.Current.CancellationToken);
         await server;
 
-        Assert.Equal(DalamudMCP.Framework.Cli.CliExitCodes.Success, exitCode);
+        Assert.Equal(Manifold.Cli.CliExitCodes.Success, exitCode);
         Assert.Equal("Test Adventurer @ ExampleWorld (Dancer 100)" + Environment.NewLine, output.ToString());
         Assert.Equal(string.Empty, error.ToString());
     }
@@ -105,7 +105,7 @@ public sealed class CliProgramTests : IDisposable
         int exitCode = await CliProgram.RunAsync(["player", "context"], output, error, TestContext.Current.CancellationToken);
         await server;
 
-        Assert.Equal(DalamudMCP.Framework.Cli.CliExitCodes.Success, exitCode);
+        Assert.Equal(Manifold.Cli.CliExitCodes.Success, exitCode);
         Assert.Equal("Test Adventurer @ ExampleWorld (Dancer 100)" + Environment.NewLine, output.ToString());
         Assert.Equal(string.Empty, error.ToString());
     }
@@ -129,7 +129,7 @@ public sealed class CliProgramTests : IDisposable
         int exitCode = await CliProgram.RunAsync(["--pipe", pipeName, "duty", "context"], output, error, TestContext.Current.CancellationToken);
         await server;
 
-        Assert.Equal(DalamudMCP.Framework.Cli.CliExitCodes.Success, exitCode);
+        Assert.Equal(Manifold.Cli.CliExitCodes.Success, exitCode);
         Assert.Equal("Territory#777 is active." + Environment.NewLine, output.ToString());
         Assert.Equal(string.Empty, error.ToString());
     }
@@ -153,7 +153,7 @@ public sealed class CliProgramTests : IDisposable
         int exitCode = await CliProgram.RunAsync(["--pipe", pipeName, "session", "status"], output, error, TestContext.Current.CancellationToken);
         await server;
 
-        Assert.Equal(DalamudMCP.Framework.Cli.CliExitCodes.Success, exitCode);
+        Assert.Equal(Manifold.Cli.CliExitCodes.Success, exitCode);
         Assert.Equal("2/2 readers ready" + Environment.NewLine, output.ToString());
         Assert.Equal(string.Empty, error.ToString());
     }
@@ -177,7 +177,7 @@ public sealed class CliProgramTests : IDisposable
         int exitCode = await CliProgram.RunAsync(["--pipe", pipeName, "session", "status", "--json"], output, error, TestContext.Current.CancellationToken);
         await server;
 
-        Assert.Equal(DalamudMCP.Framework.Cli.CliExitCodes.Success, exitCode);
+        Assert.Equal(Manifold.Cli.CliExitCodes.Success, exitCode);
         Assert.Contains("\"state\":2", output.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"summaryText\":\"2/2 readers ready\"", output.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Equal(string.Empty, error.ToString());
@@ -191,7 +191,7 @@ public sealed class CliProgramTests : IDisposable
 
         int exitCode = await CliProgram.RunAsync(["serve", "mcp", "--json"], output, error, TestContext.Current.CancellationToken);
 
-        Assert.Equal(DalamudMCP.Framework.Cli.CliExitCodes.UsageError, exitCode);
+        Assert.Equal(Manifold.Cli.CliExitCodes.UsageError, exitCode);
         Assert.Equal(string.Empty, output.ToString());
         Assert.Contains("serve mcp", error.ToString(), StringComparison.Ordinal);
     }
