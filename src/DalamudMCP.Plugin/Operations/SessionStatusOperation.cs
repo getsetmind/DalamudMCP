@@ -161,6 +161,3 @@ public sealed partial record SessionStatusSnapshot(
     SessionRuntimeState State,
     string SummaryText,
     IReadOnlyList<SessionReaderStatus> Readers);
-
-
-

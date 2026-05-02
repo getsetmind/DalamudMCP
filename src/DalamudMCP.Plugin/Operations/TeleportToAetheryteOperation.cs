@@ -407,6 +407,3 @@ public sealed partial record TeleportToAetheryteResult(
     string? AetheryteName,
     string? TerritoryName,
     string SummaryText);
-
-
-

@@ -217,6 +217,3 @@ public sealed partial record NearbyInteractablesSnapshot(
     double MaxDistance,
     NearbyInteractable[] Interactables,
     string SummaryText);
-
-
-

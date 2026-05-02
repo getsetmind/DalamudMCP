@@ -345,6 +345,3 @@ public sealed class CliProgramTests : IDisposable
         scope.Dispose();
     }
 }
-
-
-

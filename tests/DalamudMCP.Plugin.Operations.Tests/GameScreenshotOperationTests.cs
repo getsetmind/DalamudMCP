@@ -61,6 +61,3 @@ public sealed class GameScreenshotOperationTests
         Assert.Equal(cancellationToken, observedCancellationToken);
     }
 }
-
-
-

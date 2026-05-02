@@ -569,6 +569,3 @@ public sealed partial record GameScreenshotSnapshot(
     int Height,
     long FileSizeBytes,
     string SummaryText);
-
-
-

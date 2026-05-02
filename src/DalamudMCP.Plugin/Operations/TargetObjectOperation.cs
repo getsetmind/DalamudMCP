@@ -177,6 +177,3 @@ public sealed partial record TargetObjectResult(
     string? TargetName,
     string? ObjectKind,
     string SummaryText);
-
-
-

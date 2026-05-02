@@ -171,6 +171,3 @@ public sealed partial record AddonCallbackValuesResult(
     bool Succeeded,
     string? Reason,
     string SummaryText);
-
-
-

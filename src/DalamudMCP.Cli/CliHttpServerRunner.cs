@@ -145,6 +145,3 @@ public static class CliHttpServerRunner
         context.Response.Headers["MCP-Protocol-Version"] = CurrentProtocolVersion;
     }
 }
-
-
-

@@ -334,6 +334,3 @@ public sealed partial record QuestStatusSnapshot(
     string Query,
     QuestStatusEntrySnapshot[] Matches,
     string SummaryText);
-
-
-

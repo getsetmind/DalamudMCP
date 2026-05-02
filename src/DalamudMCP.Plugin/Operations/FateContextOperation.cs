@@ -233,6 +233,3 @@ public sealed partial record FateContextSnapshot(
     double MaxDistance,
     FateSnapshot[] Fates,
     string SummaryText);
-
-
-

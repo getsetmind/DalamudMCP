@@ -66,6 +66,3 @@ public sealed class QuestStatusOperationTests
         Assert.Equal(cancellationToken, observedCancellationToken);
     }
 }
-
-
-

@@ -55,6 +55,3 @@ public sealed class MoveToEntityOperationTests
         Assert.Equal(cancellationToken, observedCancellationToken);
     }
 }
-
-
-

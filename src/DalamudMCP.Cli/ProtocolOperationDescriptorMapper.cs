@@ -89,6 +89,3 @@ internal static class ProtocolOperationDescriptorMapper
             : elementType;
     }
 }
-
-
-

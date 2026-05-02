@@ -303,6 +303,3 @@ public sealed partial record AddonTreeSnapshot(
     string AddonName,
     DateTimeOffset CapturedAt,
     AddonTreeNode[] Roots);
-
-
-

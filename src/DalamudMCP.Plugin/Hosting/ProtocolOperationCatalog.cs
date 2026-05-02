@@ -108,6 +108,3 @@ public static class ProtocolOperationCatalog
         return (valueKind, isNullable, isArray);
     }
 }
-
-
-

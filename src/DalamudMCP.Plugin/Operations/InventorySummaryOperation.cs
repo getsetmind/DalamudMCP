@@ -270,6 +270,3 @@ public sealed partial record InventorySummarySnapshot(
     int TotalSlots,
     InventoryCategoryBreakdown Categories,
     string SummaryText);
-
-
-

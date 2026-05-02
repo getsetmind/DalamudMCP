@@ -372,6 +372,3 @@ internal static class ProtocolOperationRequestFactory
             : value[start..(end + 1)];
     }
 }
-
-
-

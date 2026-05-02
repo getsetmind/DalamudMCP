@@ -186,6 +186,3 @@ public sealed partial record PlayerContextSnapshot(
     int JobLevel,
     string TerritoryName,
     PlayerPosition Position);
-
-
-

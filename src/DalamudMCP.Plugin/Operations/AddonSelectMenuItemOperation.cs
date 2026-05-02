@@ -640,6 +640,3 @@ public sealed partial record AddonSelectMenuItemResult(
     bool Succeeded,
     string? Reason,
     string SummaryText);
-
-
-

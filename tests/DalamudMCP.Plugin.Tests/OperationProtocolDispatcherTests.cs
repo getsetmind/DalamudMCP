@@ -595,6 +595,3 @@ public sealed class OperationProtocolDispatcherTests
         string? ResultJson,
         string SummaryText);
 }
-
-
-

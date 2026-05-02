@@ -535,6 +535,3 @@ public sealed partial record CurrentQuestObjectiveSnapshot(
     CurrentQuestObjectiveVisibleMarker[] VisibleMarkers,
     CurrentQuestObjectiveLinkMarker[] LinkMarkers,
     string SummaryText);
-
-
-

@@ -39,6 +39,3 @@ public static class PluginGeneratedOperationRegistration
         services.AddSingleton(formatterAttribute.FormatterType);
     }
 }
-
-
-

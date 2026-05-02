@@ -36,4 +36,3 @@
     <Content Include="$(DalamudLibPath)Microsoft.Extensions.ObjectPool.dll" Condition="Exists('$(DalamudLibPath)Microsoft.Extensions.ObjectPool.dll')" Link="Microsoft.Extensions.ObjectPool.dll" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
-

@@ -150,6 +150,3 @@ public sealed partial record DutyActionResult(
     string? Reason,
     uint? ActionId,
     string SummaryText);
-
-
-

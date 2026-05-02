@@ -33,6 +33,3 @@ public sealed class GeneratedActionOperationRegistryTests
         Assert.Equal(mcpToolName, descriptor.McpToolName);
     }
 }
-
-
-

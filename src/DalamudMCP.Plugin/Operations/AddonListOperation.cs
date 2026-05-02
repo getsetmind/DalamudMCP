@@ -162,6 +162,3 @@ public sealed partial record AddonSummary(
     bool IsVisible,
     DateTimeOffset CapturedAt,
     string SummaryText);
-
-
-

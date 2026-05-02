@@ -83,6 +83,3 @@ public static class CliProgram
         return await application.ExecuteAsync(options.CommandArguments, output, error, cancellationToken).ConfigureAwait(false);
     }
 }
-
-
-

@@ -94,6 +94,3 @@ public sealed class UnsafeInvokePluginIpcOperationTests
         }
     }
 }
-
-
-

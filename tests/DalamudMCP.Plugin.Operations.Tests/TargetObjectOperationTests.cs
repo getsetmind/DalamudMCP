@@ -54,6 +54,3 @@ public sealed class TargetObjectOperationTests
         Assert.Equal(cancellationToken, observedCancellationToken);
     }
 }
-
-
-

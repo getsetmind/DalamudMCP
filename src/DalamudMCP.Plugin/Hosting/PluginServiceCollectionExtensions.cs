@@ -67,6 +67,3 @@ public static class PluginServiceCollectionExtensions
         return services.BuildServiceProvider();
     }
 }
-
-
-

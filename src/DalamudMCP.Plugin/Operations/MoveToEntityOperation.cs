@@ -277,6 +277,3 @@ public sealed partial record MoveToEntityResult(
     string? ObjectKind,
     MoveDestination? Destination,
     string SummaryText);
-
-
-

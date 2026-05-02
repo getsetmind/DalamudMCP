@@ -195,6 +195,3 @@ public sealed class GeneratedActionOperationInvokerTests
         Assert.Equal(expected, Assert.IsType<AddonSelectMenuItemResult>(result.Result));
     }
 }
-
-
-

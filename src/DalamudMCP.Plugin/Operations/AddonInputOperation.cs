@@ -344,6 +344,3 @@ public sealed partial record AddonInputResult(
     bool Succeeded,
     string? Reason,
     string SummaryText);
-
-
-

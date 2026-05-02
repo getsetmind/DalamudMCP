@@ -360,6 +360,3 @@ public sealed partial record AvailableQuestsSnapshot(
     string? NameContains,
     AvailableQuest[] Quests,
     string SummaryText);
-
-
-

@@ -121,6 +121,3 @@ public sealed class PluginEntryPoint : IDalamudPlugin
     }
 
 }
-
-
-

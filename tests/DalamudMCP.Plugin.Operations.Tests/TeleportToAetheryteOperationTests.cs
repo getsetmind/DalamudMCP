@@ -106,6 +106,3 @@ public sealed class TeleportToAetheryteOperationTests
         }
     }
 }
-
-
-

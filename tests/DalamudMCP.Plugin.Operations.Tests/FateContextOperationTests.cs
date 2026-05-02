@@ -66,6 +66,3 @@ public sealed class FateContextOperationTests
         Assert.Equal(cancellationToken, observedCancellationToken);
     }
 }
-
-
-

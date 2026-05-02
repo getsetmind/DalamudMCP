@@ -264,6 +264,3 @@ public sealed partial record InteractWithTargetResult(
     string? ObjectKind,
     double? Distance,
     string SummaryText);
-
-
-

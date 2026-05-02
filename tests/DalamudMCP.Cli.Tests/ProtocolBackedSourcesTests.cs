@@ -224,6 +224,3 @@ public sealed class ProtocolBackedSourcesTests
         }
     }
 }
-
-
-

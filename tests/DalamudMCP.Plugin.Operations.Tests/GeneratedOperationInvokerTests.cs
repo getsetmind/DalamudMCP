@@ -478,6 +478,3 @@ public sealed class GeneratedOperationInvokerTests
         Assert.Equal(expected, Assert.IsType<UnsafeInvokePluginIpcResult>(result.Result));
     }
 }
-
-
-

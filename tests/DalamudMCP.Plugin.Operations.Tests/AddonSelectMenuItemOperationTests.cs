@@ -160,6 +160,3 @@ public sealed class AddonSelectMenuItemOperationTests
             candidates);
     }
 }
-
-
-

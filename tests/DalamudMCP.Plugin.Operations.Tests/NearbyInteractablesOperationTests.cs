@@ -67,6 +67,3 @@ public sealed class NearbyInteractablesOperationTests
         Assert.Equal(cancellationToken, observedCancellationToken);
     }
 }
-
-
-

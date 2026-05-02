@@ -94,6 +94,3 @@ public sealed class SessionStatusOperationTests
         public string Detail => throw new InvalidOperationException("Not on main thread!");
     }
 }
-
-
-

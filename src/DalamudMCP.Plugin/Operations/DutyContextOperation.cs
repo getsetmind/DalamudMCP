@@ -173,6 +173,3 @@ public sealed partial record DutyContextSnapshot(
     bool InDuty,
     bool IsDutyComplete,
     string SummaryText);
-
-
-

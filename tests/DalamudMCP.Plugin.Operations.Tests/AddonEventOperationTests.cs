@@ -64,6 +64,3 @@ public sealed class AddonEventOperationTests
         Assert.Equal(cancellationToken, observedCancellationToken);
     }
 }
-
-
-

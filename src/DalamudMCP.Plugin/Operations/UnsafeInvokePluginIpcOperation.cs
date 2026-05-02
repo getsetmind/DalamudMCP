@@ -389,6 +389,3 @@ public sealed partial record UnsafeInvokePluginIpcResult(
     string ResultKind,
     string? ResultJson,
     string SummaryText);
-
-
-

@@ -424,6 +424,3 @@ internal sealed class PluginConfigOperationRow
         }
     }
 }
-
-
-

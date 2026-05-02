@@ -59,6 +59,3 @@ public sealed class PlayerContextOperationTests
         Assert.Equal(cancellationToken, observedCancellationToken);
     }
 }
-
-
-

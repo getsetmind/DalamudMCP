@@ -54,6 +54,3 @@ public sealed class DutyActionOperationTests
         Assert.Equal(cancellationToken, observedCancellationToken);
     }
 }
-
-
-

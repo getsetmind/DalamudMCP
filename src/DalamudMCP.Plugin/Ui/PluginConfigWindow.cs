@@ -445,6 +445,3 @@ public sealed class PluginConfigWindow
             : command;
     }
 }
-
-
-

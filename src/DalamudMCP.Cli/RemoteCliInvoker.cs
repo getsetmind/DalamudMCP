@@ -77,6 +77,3 @@ public sealed class RemoteCliInvoker : ICliInvoker
             rawJsonPayload);
     }
 }
-
-
-

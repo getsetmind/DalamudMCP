@@ -250,6 +250,3 @@ public sealed partial record AddonStringsSnapshot(
     string AddonName,
     DateTimeOffset CapturedAt,
     AddonStringEntry[] Entries);
-
-
-

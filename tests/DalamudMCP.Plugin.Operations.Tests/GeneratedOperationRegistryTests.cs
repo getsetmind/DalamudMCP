@@ -219,6 +219,3 @@ public sealed class GeneratedOperationRegistryTests
         Assert.Equal(5, descriptor.Parameters.Count);
     }
 }
-
-
-

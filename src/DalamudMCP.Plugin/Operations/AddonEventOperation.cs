@@ -1008,6 +1008,3 @@ internal struct NativeMouseInput
     public uint Time;
     public nint DwExtraInfo;
 }
-
-
-

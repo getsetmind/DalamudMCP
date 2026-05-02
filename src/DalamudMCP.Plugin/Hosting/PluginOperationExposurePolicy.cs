@@ -69,6 +69,3 @@ internal static class PluginOperationExposurePolicy
             .ToArray();
     }
 }
-
-
-
