@@ -3,9 +3,9 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Plugin.Services;
-using Manifold;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using Manifold;
 using MemoryPack;
 
 namespace DalamudMCP.Plugin.Operations;
@@ -460,8 +460,7 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
                 InputData = new AtkEventData.AtkInputData
                 {
                     InputId = eventParam,
-                    State = InputState.Repeat,
-                    Modifier = 0
+                    State = InputState.Repeat
                 }
             },
             AtkEventType.InputReceived => new AtkEventData
@@ -469,8 +468,7 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
                 InputData = new AtkEventData.AtkInputData
                 {
                     InputId = eventParam,
-                    State = InputState.Down,
-                    Modifier = 0
+                    State = InputState.Down
                 }
             },
             _ => new AtkEventData
@@ -488,8 +486,7 @@ public sealed partial class AddonEventOperation : IOperation<AddonEventOperation
             PosX = GetNodeCenterCoordinate(sourceNode->ScreenX, sourceNode->Width),
             PosY = GetNodeCenterCoordinate(sourceNode->ScreenY, sourceNode->Height),
             WheelDirection = 0,
-            ButtonId = 1,
-            Modifier = 0
+            ButtonId = 1
         };
     }
 

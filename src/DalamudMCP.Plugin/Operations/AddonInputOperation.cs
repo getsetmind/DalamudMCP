@@ -1,11 +1,10 @@
 using System.Runtime.Versioning;
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Plugin.Services;
-using Manifold;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using Manifold;
 using MemoryPack;
-using AtkInputState = FFXIVClientStructs.FFXIV.Component.GUI.InputState;
 
 namespace DalamudMCP.Plugin.Operations;
 
@@ -217,8 +216,7 @@ public sealed partial class AddonInputOperation : IOperation<AddonInputOperation
         AtkEventData.AtkInputData inputData = new()
         {
             InputId = inputId,
-            State = ToNativeInputState(inputState, auxiliaryState),
-            Modifier = 0
+            State = ToNativeInputState(inputState, auxiliaryState)
         };
 
         return addonStruct->HandleCustomInput(&inputData);
@@ -297,16 +295,16 @@ public sealed partial class AddonInputOperation : IOperation<AddonInputOperation
         };
     }
 
-    private static AtkInputState ToNativeInputState(AddonInputState? inputState, bool auxiliaryState)
+    private static InputState ToNativeInputState(AddonInputState? inputState, bool auxiliaryState)
     {
         AddonInputState effectiveState = inputState ?? (auxiliaryState ? AddonInputState.Repeat : AddonInputState.Down);
         return effectiveState switch
         {
-            AddonInputState.Down => AtkInputState.Down,
-            AddonInputState.Up => AtkInputState.Up,
-            AddonInputState.Held => AtkInputState.Held,
-            AddonInputState.Repeat => AtkInputState.Repeat,
-            _ => AtkInputState.Down
+            AddonInputState.Down => InputState.Down,
+            AddonInputState.Up => InputState.Up,
+            AddonInputState.Held => InputState.Held,
+            AddonInputState.Repeat => InputState.Repeat,
+            _ => InputState.Down
         };
     }
 

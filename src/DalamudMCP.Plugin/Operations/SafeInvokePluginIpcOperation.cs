@@ -1,8 +1,8 @@
 using System.Reflection;
 using System.Runtime.Versioning;
 using System.Text.Json;
-using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using DalamudMCP.Plugin.Ipc;
 using DalamudMCP.Protocol;
 using Manifold;
 using MemoryPack;
@@ -22,25 +22,17 @@ public sealed partial class SafeInvokePluginIpcOperation
     private readonly Func<Request, CancellationToken, ValueTask<SafeInvokePluginIpcResult>> executor;
 
     [SupportedOSPlatform("windows")]
-    public SafeInvokePluginIpcOperation(IDalamudPluginInterface pluginInterface, IFramework framework)
-    {
-        ArgumentNullException.ThrowIfNull(pluginInterface);
-        ArgumentNullException.ThrowIfNull(framework);
-
-        executor = CreatePluginExecutor(new PluginIpcGateway(pluginInterface), framework);
-    }
-
-    internal SafeInvokePluginIpcOperation(Func<Request, CancellationToken, ValueTask<SafeInvokePluginIpcResult>> executor)
-    {
-        this.executor = executor ?? throw new ArgumentNullException(nameof(executor));
-    }
-
-    internal SafeInvokePluginIpcOperation(IPluginIpcGateway gateway, IFramework framework)
+    public SafeInvokePluginIpcOperation(IPluginIpcGateway gateway, IFramework framework)
     {
         ArgumentNullException.ThrowIfNull(gateway);
         ArgumentNullException.ThrowIfNull(framework);
 
         executor = CreatePluginExecutor(gateway, framework);
+    }
+
+    internal SafeInvokePluginIpcOperation(Func<Request, CancellationToken, ValueTask<SafeInvokePluginIpcResult>> executor)
+    {
+        this.executor = executor ?? throw new ArgumentNullException(nameof(executor));
     }
 
     public ValueTask<SafeInvokePluginIpcResult> ExecuteAsync(Request request, OperationContext context)
@@ -194,83 +186,6 @@ public sealed partial class SafeInvokePluginIpcOperation
         };
     }
 
-    internal interface IPluginIpcGateway
-    {
-        public bool TryCreate(string callgate, IReadOnlyList<Type> typeArguments, out IPluginCallGateSubscriber? subscriber);
-    }
-
-    internal interface IPluginCallGateSubscriber
-    {
-        public bool HasFunction { get; }
-
-        public object? InvokeFunc(IReadOnlyList<object?> arguments);
-    }
-
-    private sealed class PluginIpcGateway : IPluginIpcGateway
-    {
-        private static readonly MethodInfo[] GetSubscriberMethods = typeof(IDalamudPluginInterface)
-            .GetMethods(BindingFlags.Instance | BindingFlags.Public)
-            .Where(static method =>
-                string.Equals(method.Name, "GetIpcSubscriber", StringComparison.Ordinal) &&
-                method.IsGenericMethodDefinition)
-            .OrderBy(static method => method.GetGenericArguments().Length)
-            .ToArray();
-
-        private readonly IDalamudPluginInterface pluginInterface;
-
-        public PluginIpcGateway(IDalamudPluginInterface pluginInterface)
-        {
-            this.pluginInterface = pluginInterface ?? throw new ArgumentNullException(nameof(pluginInterface));
-        }
-
-        public bool TryCreate(string callgate, IReadOnlyList<Type> typeArguments, out IPluginCallGateSubscriber? subscriber)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(callgate);
-            ArgumentNullException.ThrowIfNull(typeArguments);
-
-            MethodInfo? method = GetSubscriberMethods.FirstOrDefault(candidate => candidate.GetGenericArguments().Length == typeArguments.Count);
-            if (method is null)
-            {
-                subscriber = null;
-                return false;
-            }
-
-            object? rawSubscriber = method.MakeGenericMethod(typeArguments.ToArray()).Invoke(pluginInterface, [callgate]);
-            if (rawSubscriber is null)
-            {
-                subscriber = null;
-                return false;
-            }
-
-            subscriber = new ReflectionPluginCallGateSubscriber(rawSubscriber);
-            return true;
-        }
-    }
-
-    private sealed class ReflectionPluginCallGateSubscriber : IPluginCallGateSubscriber
-    {
-        private readonly object subscriber;
-        private readonly PropertyInfo hasFunctionProperty;
-        private readonly MethodInfo invokeFuncMethod;
-
-        public ReflectionPluginCallGateSubscriber(object subscriber)
-        {
-            this.subscriber = subscriber ?? throw new ArgumentNullException(nameof(subscriber));
-            Type type = subscriber.GetType();
-            hasFunctionProperty = type.GetProperty("HasFunction", BindingFlags.Instance | BindingFlags.Public)
-                ?? throw new InvalidOperationException("The IPC subscriber did not expose HasFunction.");
-            invokeFuncMethod = type.GetMethod("InvokeFunc", BindingFlags.Instance | BindingFlags.Public)
-                ?? throw new InvalidOperationException("The IPC subscriber did not expose InvokeFunc.");
-        }
-
-        public bool HasFunction => (bool?)hasFunctionProperty.GetValue(subscriber) ?? false;
-
-        public object? InvokeFunc(IReadOnlyList<object?> arguments)
-        {
-            ArgumentNullException.ThrowIfNull(arguments);
-            return invokeFuncMethod.Invoke(subscriber, arguments.ToArray());
-        }
-    }
 }
 
 [MemoryPackable]

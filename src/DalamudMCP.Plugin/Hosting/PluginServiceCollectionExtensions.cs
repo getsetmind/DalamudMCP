@@ -1,6 +1,7 @@
 using System.Runtime.Versioning;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using DalamudMCP.Plugin.Ipc;
 using DalamudMCP.Plugin.Relay;
 using DalamudMCP.Plugin.Ui.Localization;
 using DalamudMCP.Protocol;
@@ -65,6 +66,7 @@ public static class PluginServiceCollectionExtensions
         services.AddSingleton(targetManager);
         services.AddSingleton(commandManager);
         services.AddSingleton<Services.ChatLogBufferService>();
+        services.AddSingleton<IPluginIpcGateway, PluginIpcGateway>();
         services.AddSingleton<IPluginDataRelayService, PluginDataRelayService>();
         services.AddGeneratedPluginOperations();
         services.AddSingleton<IOperationInvoker, GeneratedOperationInvoker>();

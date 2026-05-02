@@ -3,13 +3,13 @@ using System.Reflection;
 using System.Runtime.Versioning;
 using Dalamud.Game;
 using Dalamud.Plugin.Services;
-using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
+using Manifold;
 using MemoryPack;
 using GameUiMap = FFXIVClientStructs.FFXIV.Client.Game.UI.Map;
 
@@ -182,7 +182,7 @@ public sealed partial class AvailableQuestsOperation
                 break;
         }
 
-        ushort territoryType = checked((ushort)clientState.TerritoryType);
+        ushort territoryType = (ushort)clientState.TerritoryType;
         string summaryText = BuildSnapshotSummary(territoryType, nameContains, quests.Count);
         return new AvailableQuestsSnapshot(
             DateTimeOffset.UtcNow,
