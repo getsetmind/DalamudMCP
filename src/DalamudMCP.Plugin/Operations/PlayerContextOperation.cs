@@ -2,9 +2,9 @@ using System.Globalization;
 using System.Runtime.Versioning;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Plugin.Services;
-using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
+using Manifold;
 using MemoryPack;
 
 namespace DalamudMCP.Plugin.Operations;
@@ -29,14 +29,16 @@ public sealed partial class PlayerContextOperation
         IFramework framework,
         IClientState clientState,
         IObjectTable objectTable,
-        IPlayerState playerState)
+        IPlayerState playerState,
+        IDataManager dataManager)
     {
         ArgumentNullException.ThrowIfNull(framework);
         ArgumentNullException.ThrowIfNull(clientState);
         ArgumentNullException.ThrowIfNull(objectTable);
         ArgumentNullException.ThrowIfNull(playerState);
+        ArgumentNullException.ThrowIfNull(dataManager);
 
-        executor = CreateDalamudExecutor(framework, clientState, objectTable, playerState);
+        executor = CreateDalamudExecutor(framework, clientState, objectTable, playerState, dataManager);
         isReadyProvider = () => clientState.IsLoggedIn && playerState.IsLoaded && objectTable.LocalPlayer is not null;
         detailProvider = () => isReadyProvider() ? "ready" : "not_logged_in";
         unavailableDetail = "not_logged_in";
@@ -88,17 +90,18 @@ public sealed partial class PlayerContextOperation
         IFramework framework,
         IClientState clientState,
         IObjectTable objectTable,
-        IPlayerState playerState)
+        IPlayerState playerState,
+        IDataManager dataManager)
     {
         return async cancellationToken =>
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             if (framework.IsInFrameworkUpdateThread)
-                return ReadCurrentCore(clientState, objectTable, playerState, cancellationToken);
+                return ReadCurrentCore(clientState, objectTable, playerState, dataManager, cancellationToken);
 
             return await framework.RunOnFrameworkThread(() =>
-                    ReadCurrentCore(clientState, objectTable, playerState, cancellationToken))
+                    ReadCurrentCore(clientState, objectTable, playerState, dataManager, cancellationToken))
                 .ConfigureAwait(false);
         };
     }
@@ -108,6 +111,7 @@ public sealed partial class PlayerContextOperation
         IClientState clientState,
         IObjectTable objectTable,
         IPlayerState playerState,
+        IDataManager dataManager,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -123,9 +127,7 @@ public sealed partial class PlayerContextOperation
         string jobName = ResolveClassJobName(playerState.ClassJob);
         int jobLevel = ConvertToNullableInt(playerState.Level) ?? 0;
         int? territoryId = ConvertToNullableInt(clientState.TerritoryType);
-        string territoryName = territoryId is null
-            ? "Unknown"
-            : $"Territory#{territoryId.Value.ToString(CultureInfo.InvariantCulture)}";
+        string territoryName = ResolveTerritoryName(dataManager, territoryId);
         PlayerPosition position = new(
             Math.Round(player.Position.X, 1),
             Math.Round(player.Position.Y, 1),
@@ -169,6 +171,19 @@ public sealed partial class PlayerContextOperation
             name = row?.Name.ToString();
 
         return string.IsNullOrWhiteSpace(name) ? $"ClassJob#{classJob.RowId}" : name;
+    }
+
+    private static string ResolveTerritoryName(IDataManager dataManager, int? territoryId)
+    {
+        if (territoryId is null || territoryId < 0)
+            return "Unknown";
+        Lumina.Excel.Sheets.TerritoryType? territory = dataManager
+            .GetExcelSheet<Lumina.Excel.Sheets.TerritoryType>()?
+            .GetRowOrDefault((uint)territoryId.Value);
+        string? name = territory?.PlaceName.ValueNullable?.Name.ToString();
+        return string.IsNullOrWhiteSpace(name)
+            ? $"Territory#{territoryId.Value.ToString(CultureInfo.InvariantCulture)}"
+            : name;
     }
 }
 

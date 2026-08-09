@@ -84,13 +84,20 @@ public sealed class RemoteMcpToolService
             string text = string.IsNullOrWhiteSpace(result.DisplayText)
                 ? GetDefaultText(structuredPayload)
                 : result.DisplayText;
+            List<ContentBlock> content = [new TextContentBlock { Text = text }];
+            JsonElement structuredContent = structuredPayload;
+            if (TryCreateImageContent(structuredPayload, out ImageContentBlock? image, out JsonElement sanitizedPayload))
+            {
+                content.Add(image);
+                structuredContent = sanitizedPayload;
+            }
             return new CallToolResult
             {
-                Content = [new TextContentBlock { Text = text }],
-                StructuredContent = structuredPayload.ValueKind == JsonValueKind.Undefined
+                Content = content,
+                StructuredContent = structuredContent.ValueKind == JsonValueKind.Undefined
                     ? null
-                    : structuredPayload,
-                IsError = false
+                    : structuredContent,
+                IsError = IsDomainError(structuredPayload)
             };
         }
         catch (ArgumentException exception)
@@ -182,9 +189,60 @@ public sealed class RemoteMcpToolService
         return new Tool
         {
             Name = operation.McpToolName!,
+            Title = operation.Summary,
             Description = operation.Description,
-            InputSchema = BuildInputSchema(operation)
+            InputSchema = BuildInputSchema(operation),
+            OutputSchema = ParseOutputSchema(operation.OutputSchemaJson),
+            Annotations = new ToolAnnotations
+            {
+                Title = operation.Summary,
+                ReadOnlyHint = operation.Effect == ProtocolOperationEffect.ReadOnly,
+                DestructiveHint = operation.Effect == ProtocolOperationEffect.Destructive,
+                IdempotentHint = operation.Idempotent,
+                OpenWorldHint = operation.OpenWorld
+            },
+            Meta = new JsonObject
+            {
+                ["io.dalamudmcp/permissionScope"] = operation.PermissionScope,
+                ["io.dalamudmcp/supportsDryRun"] = operation.SupportsDryRun,
+                ["io.dalamudmcp/requiresFrameworkThread"] = operation.RequiresFrameworkThread
+            }
         };
+    }
+
+    internal static bool TryCreateImageContent(
+        JsonElement payload,
+        out ImageContentBlock image,
+        out JsonElement sanitizedPayload)
+    {
+        image = null!;
+        sanitizedPayload = payload;
+        if (payload.ValueKind != JsonValueKind.Object ||
+            !payload.TryGetProperty("mimeType", out JsonElement mimeTypeElement) ||
+            mimeTypeElement.ValueKind != JsonValueKind.String ||
+            !payload.TryGetProperty("base64Data", out JsonElement dataElement) ||
+            dataElement.ValueKind != JsonValueKind.String)
+        {
+            return false;
+        }
+
+        string? mimeType = mimeTypeElement.GetString();
+        string? base64Data = dataElement.GetString();
+        if (string.IsNullOrWhiteSpace(mimeType) || string.IsNullOrWhiteSpace(base64Data))
+            return false;
+
+        try
+        {
+            image = ImageContentBlock.FromBytes(Convert.FromBase64String(base64Data), mimeType);
+            JsonObject sanitized = JsonNode.Parse(payload.GetRawText())!.AsObject();
+            sanitized["base64Data"] = null;
+            sanitizedPayload = JsonSerializer.SerializeToElement(sanitized, ProtocolContract.JsonOptions);
+            return true;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
     }
 
     private static JsonElement BuildInputSchema(ProtocolOperationDescriptor operation)
@@ -203,7 +261,8 @@ public sealed class RemoteMcpToolService
         JsonObject schema = new()
         {
             ["type"] = "object",
-            ["properties"] = properties
+            ["properties"] = properties,
+            ["additionalProperties"] = false
         };
         if (required.Count > 0)
             schema["required"] = required;
@@ -217,6 +276,8 @@ public sealed class RemoteMcpToolService
         if (parameter.IsArray)
         {
             schema["type"] = "array";
+            if (parameter.MaxItems.HasValue)
+                schema["maxItems"] = parameter.MaxItems.Value;
             JsonObject items = [];
             FillScalarSchema(items, parameter);
             schema["items"] = items;
@@ -228,6 +289,8 @@ public sealed class RemoteMcpToolService
 
         if (!string.IsNullOrWhiteSpace(parameter.Description))
             schema["description"] = parameter.Description;
+        if (parameter.AllowedValues is { Count: > 0 })
+            schema["enum"] = new JsonArray(parameter.AllowedValues.Select(static value => (JsonNode?)JsonValue.Create(value)).ToArray());
         return schema;
     }
 
@@ -265,6 +328,15 @@ public sealed class RemoteMcpToolService
                 schema["type"] = "string";
                 break;
         }
+
+        if (parameter.Minimum.HasValue)
+            schema["minimum"] = parameter.Minimum.Value;
+        if (parameter.Maximum.HasValue)
+            schema["maximum"] = parameter.Maximum.Value;
+        if (parameter.MinLength.HasValue)
+            schema["minLength"] = parameter.MinLength.Value;
+        if (parameter.MaxLength.HasValue)
+            schema["maxLength"] = parameter.MaxLength.Value;
     }
 
     private static string GetDefaultText(JsonElement payload)
@@ -275,6 +347,33 @@ public sealed class RemoteMcpToolService
             JsonValueKind.String => payload.GetString() ?? string.Empty,
             _ => payload.GetRawText()
         };
+    }
+
+    private static JsonElement? ParseOutputSchema(string? outputSchemaJson)
+    {
+        if (string.IsNullOrWhiteSpace(outputSchemaJson))
+            return null;
+
+        using JsonDocument document = JsonDocument.Parse(outputSchemaJson);
+        return document.RootElement.Clone();
+    }
+
+    internal static bool IsDomainError(JsonElement payload)
+    {
+        if (payload.ValueKind is not JsonValueKind.Object)
+            return false;
+
+        foreach (JsonProperty property in payload.EnumerateObject())
+        {
+            if ((string.Equals(property.Name, "success", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(property.Name, "succeeded", StringComparison.OrdinalIgnoreCase)) &&
+                property.Value.ValueKind is JsonValueKind.False)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static CallToolResult CreateErrorResult(string message)

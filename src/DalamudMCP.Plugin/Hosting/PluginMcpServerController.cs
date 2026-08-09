@@ -1,14 +1,16 @@
 using System.Diagnostics;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using DalamudMCP.Protocol;
 
 namespace DalamudMCP.Plugin.Hosting;
 
 public sealed class PluginMcpServerController : IDisposable
 {
     private const string InitializeProbeBody =
-        "{\"jsonrpc\":\"2.0\",\"id\":\"probe-init\",\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{},\"clientInfo\":{\"name\":\"DalamudMCP.Plugin\",\"version\":\"1.0.0\"}}}";
+        "{\"jsonrpc\":\"2.0\",\"id\":\"probe-init\",\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\",\"capabilities\":{},\"clientInfo\":{\"name\":\"DalamudMCP.Plugin\",\"version\":\"1.0.0\"}}}";
     private const string ToolsListProbeBody =
         "{\"jsonrpc\":\"2.0\",\"id\":\"probe-list\",\"method\":\"tools/list\",\"params\":{}}";
 
@@ -20,6 +22,7 @@ public sealed class PluginMcpServerController : IDisposable
     private static readonly TimeSpan ProbeRefreshInterval = TimeSpan.FromSeconds(2);
 
     private readonly PluginCliPathResolver pathResolver;
+    private readonly string? bearerToken;
     private readonly Func<Uri, EndpointProbeResult> probeEndpoint;
     private readonly Func<int, bool> tryTerminateProcessByPort;
     private readonly object syncRoot = new();
@@ -37,19 +40,28 @@ public sealed class PluginMcpServerController : IDisposable
     public PluginMcpServerController(
         PluginCliPathResolver pathResolver,
         IReadOnlyList<string> expectedMcpToolNames)
-        : this(pathResolver, CreateEndpointProbe(() => expectedMcpToolNames), TryTerminateProcessByPort)
+        : this(pathResolver, CreateEndpointProbe(() => expectedMcpToolNames, bearerToken: null), TryTerminateProcessByPort, bearerToken: null)
     {
     }
 
     public PluginMcpServerController(
         PluginCliPathResolver pathResolver,
         Func<IReadOnlyList<string>> expectedMcpToolNamesProvider)
-        : this(pathResolver, CreateEndpointProbe(expectedMcpToolNamesProvider), TryTerminateProcessByPort)
+        : this(pathResolver, CreateEndpointProbe(expectedMcpToolNamesProvider, bearerToken: null), TryTerminateProcessByPort, bearerToken: null)
     {
     }
 
+    public PluginMcpServerController(
+        PluginCliPathResolver pathResolver,
+        Func<IReadOnlyList<string>> expectedMcpToolNamesProvider,
+        string bearerToken)
+        : this(pathResolver, CreateEndpointProbe(expectedMcpToolNamesProvider, bearerToken), TryTerminateProcessByPort, bearerToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bearerToken);
+    }
+
     public PluginMcpServerController(PluginCliPathResolver pathResolver)
-        : this(pathResolver, static endpoint => ProbeEndpoint(endpoint), TryTerminateProcessByPort)
+        : this(pathResolver, static endpoint => ProbeEndpoint(endpoint), TryTerminateProcessByPort, bearerToken: null)
     {
     }
 
@@ -59,18 +71,21 @@ public sealed class PluginMcpServerController : IDisposable
             endpoint => probeEndpoint(endpoint)
                 ? EndpointProbeResult.Available()
                 : EndpointProbeResult.Unavailable(),
-            TryTerminateProcessByPort)
+            TryTerminateProcessByPort,
+            bearerToken: null)
     {
     }
 
     internal PluginMcpServerController(
         PluginCliPathResolver pathResolver,
         Func<Uri, EndpointProbeResult> probeEndpoint,
-        Func<int, bool> tryTerminateProcessByPort)
+        Func<int, bool> tryTerminateProcessByPort,
+        string? bearerToken = null)
     {
         this.pathResolver = pathResolver ?? throw new ArgumentNullException(nameof(pathResolver));
         this.probeEndpoint = probeEndpoint ?? throw new ArgumentNullException(nameof(probeEndpoint));
         this.tryTerminateProcessByPort = tryTerminateProcessByPort ?? throw new ArgumentNullException(nameof(tryTerminateProcessByPort));
+        this.bearerToken = string.IsNullOrWhiteSpace(bearerToken) ? null : bearerToken;
         endpointUrl = defaultEndpointUrl;
         endpointUri = new Uri(defaultEndpointUrl, UriKind.Absolute);
     }
@@ -174,7 +189,9 @@ public sealed class PluginMcpServerController : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    internal static EndpointProbeResult ProbeEndpoint(Uri endpoint)
+    internal static EndpointProbeResult ProbeEndpoint(Uri endpoint) => ProbeEndpoint(endpoint, bearerToken: null);
+
+    internal static EndpointProbeResult ProbeEndpoint(Uri endpoint, string? bearerToken)
     {
         try
         {
@@ -182,18 +199,14 @@ public sealed class PluginMcpServerController : IDisposable
             {
                 Content = new StringContent(InitializeProbeBody, Encoding.UTF8, "application/json")
             };
+            AddMcpAcceptHeaders(request);
+            AddBearerToken(request, bearerToken);
             using HttpResponseMessage response = ProbeHttpClient.Send(request);
             if (response.StatusCode != HttpStatusCode.OK)
                 return EndpointProbeResult.Unavailable();
 
-            if (!response.Headers.TryGetValues("MCP-Protocol-Version", out IEnumerable<string>? protocolVersions) ||
-                !protocolVersions.Contains("2025-03-26", StringComparer.Ordinal))
-            {
-                return EndpointProbeResult.Unavailable();
-            }
-
             string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            return body.Contains("\"protocolVersion\":\"2025-03-26\"", StringComparison.Ordinal)
+            return body.Contains("\"protocolVersion\":", StringComparison.Ordinal)
                 ? EndpointProbeResult.Available()
                 : EndpointProbeResult.Unavailable();
         }
@@ -330,6 +343,8 @@ public sealed class PluginMcpServerController : IDisposable
         };
         foreach (string argument in resolution.Arguments)
             startInfo.ArgumentList.Add(argument);
+        if (bearerToken is not null)
+            startInfo.Environment[ProtocolContract.HttpBearerTokenEnvironmentVariableName] = bearerToken;
 
         try
         {
@@ -528,13 +543,15 @@ public sealed class PluginMcpServerController : IDisposable
         return null;
     }
 
-    private static Func<Uri, EndpointProbeResult> CreateEndpointProbe(Func<IReadOnlyList<string>> expectedMcpToolNamesProvider)
+    private static Func<Uri, EndpointProbeResult> CreateEndpointProbe(
+        Func<IReadOnlyList<string>> expectedMcpToolNamesProvider,
+        string? bearerToken)
     {
         ArgumentNullException.ThrowIfNull(expectedMcpToolNamesProvider);
         return endpoint =>
         {
             IReadOnlyList<string> expectedMcpToolNames = expectedMcpToolNamesProvider();
-            EndpointProbeResult availability = ProbeEndpoint(endpoint);
+            EndpointProbeResult availability = ProbeEndpoint(endpoint, bearerToken);
             if (!availability.IsAvailable || expectedMcpToolNames.Count == 0)
                 return availability;
 
@@ -546,6 +563,8 @@ public sealed class PluginMcpServerController : IDisposable
                 {
                     Content = new StringContent(ToolsListProbeBody, Encoding.UTF8, "application/json")
                 };
+                AddMcpAcceptHeaders(request);
+                AddBearerToken(request, bearerToken);
                 using HttpResponseMessage response = ProbeHttpClient.Send(request);
                 if (response.StatusCode != HttpStatusCode.OK)
                 {
@@ -557,8 +576,7 @@ public sealed class PluginMcpServerController : IDisposable
                 }
 
                 string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                using JsonDocument document = JsonDocument.Parse(body);
-                if (!TryReadToolNames(document, out HashSet<string>? actual))
+                if (!TryParseMcpResponse(body, out JsonDocument? document) || document is null)
                 {
                     return availability with
                     {
@@ -567,13 +585,25 @@ public sealed class PluginMcpServerController : IDisposable
                     };
                 }
 
-                return actual is not null && actual.SetEquals(expected)
-                    ? availability
-                    : availability with
+                using (document)
+                {
+                    if (!TryReadToolNames(document, out HashSet<string>? actual))
                     {
-                        MatchesExpectedCatalog = false,
-                        Error = $"A stale MCP HTTP server is already bound to {endpoint}. Restart it from the current plugin instance."
-                    };
+                        return availability with
+                        {
+                            MatchesExpectedCatalog = false,
+                            Error = $"The MCP HTTP server endpoint at {endpoint} returned an unreadable tools/list response."
+                        };
+                    }
+
+                    return actual is not null && actual.SetEquals(expected)
+                        ? availability
+                        : availability with
+                        {
+                            MatchesExpectedCatalog = false,
+                            Error = $"A stale MCP HTTP server is already bound to {endpoint}. Restart it from the current plugin instance."
+                        };
+                }
             }
             catch (HttpRequestException)
             {
@@ -600,6 +630,48 @@ public sealed class PluginMcpServerController : IDisposable
                 };
             }
         };
+    }
+
+    private static void AddMcpAcceptHeaders(HttpRequestMessage request)
+    {
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+    }
+
+    private static void AddBearerToken(HttpRequestMessage request, string? bearerToken)
+    {
+        if (!string.IsNullOrWhiteSpace(bearerToken))
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+    }
+
+    internal static bool TryParseMcpResponse(string body, out JsonDocument? document)
+    {
+        document = null;
+        if (string.IsNullOrWhiteSpace(body))
+            return false;
+
+        string trimmed = body.Trim();
+        if (trimmed.StartsWith('{') || trimmed.StartsWith('['))
+        {
+            document = JsonDocument.Parse(trimmed);
+            return true;
+        }
+
+        using StringReader reader = new(trimmed);
+        while (reader.ReadLine() is { } line)
+        {
+            if (!line.StartsWith("data:", StringComparison.Ordinal))
+                continue;
+
+            string json = line["data:".Length..].TrimStart();
+            if (string.IsNullOrWhiteSpace(json))
+                continue;
+
+            document = JsonDocument.Parse(json);
+            return true;
+        }
+
+        return false;
     }
 
     private static bool HasPort(string localEndpoint, int port)

@@ -1,7 +1,7 @@
-using Manifold;
 using DalamudMCP.Plugin.Configuration;
 using DalamudMCP.Plugin.Hosting;
 using DalamudMCP.Protocol;
+using Manifold;
 
 namespace DalamudMCP.Plugin.Tests;
 
@@ -157,7 +157,7 @@ public sealed class OperationProtocolDispatcherTests
             TestContext.Current.CancellationToken);
 
         Assert.False(response.Success);
-        Assert.Equal("disabled", response.ErrorCode);
+        Assert.Equal("permission_denied", response.ErrorCode);
     }
 
     private static TestDispatcherHarness CreateHarness(bool enableActionOperations = true, bool enableUnsafeOperations = false)
@@ -262,7 +262,7 @@ public sealed class OperationProtocolDispatcherTests
             TestContext.Current.CancellationToken);
 
         Assert.False(response.Success);
-        Assert.Equal("disabled", response.ErrorCode);
+        Assert.Equal("permission_denied", response.ErrorCode);
     }
 
     private static IReadOnlyList<OperationDescriptor> CreateOperationDescriptors()

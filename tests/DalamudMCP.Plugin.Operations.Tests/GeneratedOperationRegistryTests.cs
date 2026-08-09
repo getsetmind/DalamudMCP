@@ -186,7 +186,9 @@ public sealed class GeneratedOperationRegistryTests
         Assert.Equal(typeof(GameScreenshotOperation.Request), descriptor.RequestType);
         Assert.Equal(["game", "screenshot"], descriptor.CliCommandPath);
         Assert.Equal("capture_game_screenshot", descriptor.McpToolName);
-        Assert.Single(descriptor.Parameters);
+        Assert.Equal(
+            ["capture-area", "save", "ttl-seconds"],
+            descriptor.Parameters.Select(static parameter => parameter.Name));
     }
 
     [Fact]

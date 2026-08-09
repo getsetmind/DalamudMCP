@@ -81,7 +81,7 @@ public sealed class NamedPipeProtocolServer : IAsyncDisposable
                 PipeDirection.InOut,
                 NamedPipeServerStream.MaxAllowedServerInstances,
                 PipeTransmissionMode.Byte,
-                PipeOptions.Asynchronous);
+                PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
 
             try
             {
@@ -173,6 +173,9 @@ public sealed class NamedPipeProtocolServer : IAsyncDisposable
 
     private static async Task WriteFrameAsync(PipeStream stream, byte[] payload, CancellationToken cancellationToken)
     {
+        if (payload.Length > ProtocolContract.MaximumFrameLength)
+            throw new InvalidOperationException("Protocol response exceeded the maximum frame length.");
+
         byte[] header = ArrayPool<byte>.Shared.Rent(sizeof(int));
         try
         {
@@ -200,7 +203,7 @@ public sealed class NamedPipeProtocolServer : IAsyncDisposable
             ArrayPool<byte>.Shared.Return(header);
         }
 
-        if (length <= 0)
+        if (length <= 0 || length > ProtocolContract.MaximumFrameLength)
             throw new InvalidOperationException("Protocol request length was invalid.");
 
         byte[] payload = new byte[length];

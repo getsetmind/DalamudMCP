@@ -163,6 +163,9 @@ public sealed class NamedPipeProtocolClient(string pipeName, TimeSpan? connectTi
 
     private static async Task WriteFrameAsync(PipeStream stream, byte[] payload, CancellationToken cancellationToken)
     {
+        if (payload.Length > ProtocolContract.MaximumFrameLength)
+            throw new InvalidOperationException("Protocol request exceeded the maximum frame length.");
+
         byte[] header = ArrayPool<byte>.Shared.Rent(sizeof(int));
         try
         {
@@ -190,7 +193,7 @@ public sealed class NamedPipeProtocolClient(string pipeName, TimeSpan? connectTi
             ArrayPool<byte>.Shared.Return(header);
         }
 
-        if (length <= 0)
+        if (length <= 0 || length > ProtocolContract.MaximumFrameLength)
             throw new InvalidOperationException("Protocol response length was invalid.");
 
         byte[] payload = new byte[length];

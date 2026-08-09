@@ -20,6 +20,13 @@ public sealed class PluginUiConfigurationStore : IPluginUiConfigurationAccessor
 
         PluginUiConfiguration configuration =
             pluginInterface.GetPluginConfig() as PluginUiConfiguration ?? new PluginUiConfiguration();
+        if (configuration.Version < 5 || string.IsNullOrWhiteSpace(configuration.HttpBearerToken))
+        {
+            configuration.Version = 5;
+            configuration.HttpBearerToken = PluginUiConfiguration.CreateBearerToken();
+            pluginInterface.SavePluginConfig(configuration);
+        }
+
         return new PluginUiConfigurationStore(pluginInterface, configuration);
     }
 

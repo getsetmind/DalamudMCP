@@ -22,7 +22,9 @@ public sealed class PluginConfigWindow
     private readonly PluginRuntimeOptions options;
     private readonly IReadOnlyList<OperationDescriptor> operations;
     private readonly IReadOnlyList<IPluginReaderStatus> readerStatuses;
+    private readonly Hosting.CapabilityApprovalService approvalService;
     private readonly IUiLocalization localization;
+    private readonly Dictionary<string, CapabilityPolicyEditorState> capabilityEditors = new(StringComparer.Ordinal);
     private readonly NamedPipeProtocolServer protocolServer;
     private PluginConfigWindowModel model;
     private bool isOpen;
@@ -39,6 +41,7 @@ public sealed class PluginConfigWindow
         Hosting.PluginMcpServerController mcpServerController,
         IReadOnlyList<OperationDescriptor> operations,
         IReadOnlyList<IPluginReaderStatus> readerStatuses,
+        Hosting.CapabilityApprovalService approvalService,
         IUiLocalization localization)
     {
         this.options = options ?? throw new ArgumentNullException(nameof(options));
@@ -47,6 +50,7 @@ public sealed class PluginConfigWindow
         this.mcpServerController = mcpServerController ?? throw new ArgumentNullException(nameof(mcpServerController));
         this.operations = operations ?? throw new ArgumentNullException(nameof(operations));
         this.readerStatuses = readerStatuses ?? throw new ArgumentNullException(nameof(readerStatuses));
+        this.approvalService = approvalService ?? throw new ArgumentNullException(nameof(approvalService));
         this.localization = localization ?? throw new ArgumentNullException(nameof(localization));
         this.localization.SetLanguage(configurationStore.Current.SelectedLanguage);
 
@@ -77,6 +81,8 @@ public sealed class PluginConfigWindow
         DrawOverview();
         DrawQuickStart();
         DrawAdvancedDetails();
+        DrawCapabilityPolicies();
+        DrawPendingApprovals();
         DrawOperations();
 
         ImGui.End();
@@ -258,6 +264,7 @@ public sealed class PluginConfigWindow
         DrawKeyValue(localization["advanced.pipe"], model.PipeName);
         DrawKeyValue(localization["advanced.cli_command"], model.CliCommand);
         DrawKeyValue(localization["advanced.mcp_serve"], model.McpCommand);
+        DrawKeyValue(localization["advanced.http_token"], configurationStore.Current.HttpBearerToken);
         if (!string.IsNullOrWhiteSpace(model.McpServerCommand))
             DrawKeyValue(localization["advanced.http_command"], model.McpServerCommand);
         if (!string.IsNullOrWhiteSpace(model.McpServerErrorText))
@@ -304,6 +311,9 @@ public sealed class PluginConfigWindow
         ImGui.SameLine();
         if (ImGui.Button(localization["server.copy_endpoint"], new Vector2(180f, 0f)))
             ImGui.SetClipboardText(model.McpServerEndpoint);
+
+        if (ImGui.Button(localization["server.copy_token"], new Vector2(180f, 0f)))
+            ImGui.SetClipboardText(configurationStore.Current.HttpBearerToken);
 
         if (!string.IsNullOrWhiteSpace(model.McpServerCommand))
         {
@@ -397,6 +407,222 @@ public sealed class PluginConfigWindow
             }
 
             ImGui.EndTable();
+        }
+
+        ImGui.EndChild();
+    }
+
+    private void DrawCapabilityPolicies()
+    {
+        ImGui.Spacing();
+        if (!ImGui.CollapsingHeader(localization["capabilities.header"]))
+            return;
+
+        ImGui.TextWrapped(localization["capabilities.subtitle"]);
+        string[] scopes = operations
+            .Select(static operation => Hosting.PluginOperationMetadataCatalog.Resolve(operation.OperationId).PermissionScope)
+            .Concat(["plugin.package.install", "plugin.package.update", "plugin.package.uninstall", "plugin.self.manage", "screenshot.save"])
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static scope => scope, StringComparer.Ordinal)
+            .ToArray();
+        foreach (string scope in scopes)
+        {
+            CapabilityPolicyEditorState editor = GetCapabilityEditor(scope);
+            ImGui.PushID(scope);
+            bool expanded = ImGui.TreeNode(scope);
+            ImGui.SameLine(360f);
+            DrawCapabilityAccessCombo(scope, editor);
+            if (expanded)
+            {
+                DrawCapabilityTextConstraint(scope, editor, localization["capabilities.plugins"], ref editor.PluginNames, static (policy, values) => policy.AllowedPluginNames = values);
+                DrawCapabilityTextConstraint(scope, editor, localization["capabilities.action_types"], ref editor.ActionTypes, static (policy, values) => policy.AllowedActionTypes = values);
+                DrawCapabilityTextConstraint(scope, editor, localization["capabilities.action_ids"], ref editor.ActionIds, static (policy, values) => policy.AllowedActionIds = ParseInt64Values(values));
+                DrawCapabilityTextConstraint(scope, editor, localization["capabilities.jobs"], ref editor.ClassJobIds, static (policy, values) => policy.AllowedClassJobIds = ParseUInt32Values(values));
+                DrawCapabilityTextConstraint(scope, editor, localization["capabilities.territories"], ref editor.TerritoryIds, static (policy, values) => policy.AllowedTerritoryIds = ParseUInt32Values(values));
+                DrawCapabilityTextConstraint(scope, editor, localization["capabilities.sheets"], ref editor.SheetNames, static (policy, values) => policy.AllowedSheetNames = values);
+                DrawCapabilityTextConstraint(scope, editor, localization["capabilities.callgates"], ref editor.Callgates, static (policy, values) => policy.AllowedCallgates = values);
+                DrawCapabilityTextConstraint(scope, editor, localization["capabilities.targets"], ref editor.TargetObjectIds, static (policy, values) => policy.AllowedTargetObjectIds = values);
+
+                int maximumResults = editor.MaximumResultCount;
+                if (ImGui.InputInt(localization["capabilities.max_results"], ref maximumResults))
+                {
+                    editor.MaximumResultCount = Math.Max(0, maximumResults);
+                    UpdateCapability(scope, policy => policy.MaximumResultCount = editor.MaximumResultCount);
+                }
+
+                int maximumCalls = editor.MaximumCallsPerMinute;
+                if (ImGui.InputInt(localization["capabilities.max_calls"], ref maximumCalls))
+                {
+                    editor.MaximumCallsPerMinute = Math.Max(0, maximumCalls);
+                    UpdateCapability(scope, policy => policy.MaximumCallsPerMinute = editor.MaximumCallsPerMinute);
+                }
+
+                ImGui.TreePop();
+            }
+
+            ImGui.PopID();
+        }
+    }
+
+    private void DrawCapabilityAccessCombo(string scope, CapabilityPolicyEditorState editor)
+    {
+        string label = localization[$"capabilities.access.{editor.Access.ToString().ToLowerInvariant()}"];
+        ImGui.SetNextItemWidth(150f);
+        if (!ImGui.BeginCombo("##access", label))
+            return;
+
+        foreach (CapabilityAccessMode value in Enum.GetValues<CapabilityAccessMode>())
+        {
+            bool selected = value == editor.Access;
+            string valueLabel = localization[$"capabilities.access.{value.ToString().ToLowerInvariant()}"];
+            if (ImGui.Selectable(valueLabel, selected))
+            {
+                editor.Access = value;
+                UpdateCapability(scope, policy => policy.Access = value);
+                RefreshModel(force: true);
+            }
+
+            if (selected)
+                ImGui.SetItemDefaultFocus();
+        }
+
+        ImGui.EndCombo();
+    }
+
+    private void DrawCapabilityTextConstraint(
+        string scope,
+        CapabilityPolicyEditorState editor,
+        string label,
+        ref string buffer,
+        Action<CapabilityPolicyConfiguration, string[]> update)
+    {
+        _ = editor;
+        ImGui.SetNextItemWidth(520f);
+        if (!ImGui.InputText(label, ref buffer, 2048))
+            return;
+
+        string[] values = ParseTextValues(buffer);
+        UpdateCapability(scope, policy => update(policy, values));
+    }
+
+    private CapabilityPolicyEditorState GetCapabilityEditor(string scope)
+    {
+        if (capabilityEditors.TryGetValue(scope, out CapabilityPolicyEditorState? existing))
+            return existing;
+
+        CapabilityPolicyConfiguration policy = configurationStore.Current.CapabilityPolicies.TryGetValue(scope, out CapabilityPolicyConfiguration? configured)
+            ? configured
+            : new CapabilityPolicyConfiguration { Access = ResolveDefaultAccess(scope) };
+        CapabilityPolicyEditorState created = new(policy);
+        capabilityEditors[scope] = created;
+        return created;
+    }
+
+    private CapabilityAccessMode ResolveDefaultAccess(string scope)
+    {
+        OperationDescriptor? operation = operations.FirstOrDefault(candidate =>
+            string.Equals(Hosting.PluginOperationMetadataCatalog.Resolve(candidate.OperationId).PermissionScope, scope, StringComparison.Ordinal));
+        if (operation is null)
+            return CapabilityAccessMode.Deny;
+        if (Hosting.PluginOperationExposurePolicy.IsActionOperation(operation.OperationId))
+            return configurationStore.Current.EnableActionOperations ? CapabilityAccessMode.Allow : CapabilityAccessMode.Deny;
+        if (Hosting.PluginOperationExposurePolicy.IsUnsafeOperation(operation.OperationId))
+            return configurationStore.Current.EnableUnsafeOperations ? CapabilityAccessMode.Allow : CapabilityAccessMode.Deny;
+        return CapabilityAccessMode.Allow;
+    }
+
+    private void UpdateCapability(string scope, Action<CapabilityPolicyConfiguration> update)
+    {
+        configurationStore.Update(configuration =>
+        {
+            if (!configuration.CapabilityPolicies.TryGetValue(scope, out CapabilityPolicyConfiguration? policy))
+            {
+                policy = new CapabilityPolicyConfiguration { Access = ResolveDefaultAccess(scope) };
+                configuration.CapabilityPolicies[scope] = policy;
+            }
+
+            update(policy);
+        });
+    }
+
+    private static string[] ParseTextValues(string value) => value
+        .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    private static long[] ParseInt64Values(string[] values) => values
+        .Select(static value => long.TryParse(value, out long parsed) ? parsed : (long?)null)
+        .Where(static value => value.HasValue)
+        .Select(static value => value!.Value)
+        .Distinct()
+        .ToArray();
+
+    private static uint[] ParseUInt32Values(string[] values) => values
+        .Select(static value => uint.TryParse(value, out uint parsed) ? parsed : (uint?)null)
+        .Where(static value => value.HasValue)
+        .Select(static value => value!.Value)
+        .Distinct()
+        .ToArray();
+
+    private sealed class CapabilityPolicyEditorState
+    {
+        public CapabilityPolicyEditorState(CapabilityPolicyConfiguration policy)
+        {
+            Access = policy.Access;
+            PluginNames = string.Join(", ", policy.AllowedPluginNames);
+            ActionTypes = string.Join(", ", policy.AllowedActionTypes);
+            ActionIds = string.Join(", ", policy.AllowedActionIds);
+            ClassJobIds = string.Join(", ", policy.AllowedClassJobIds);
+            TerritoryIds = string.Join(", ", policy.AllowedTerritoryIds);
+            SheetNames = string.Join(", ", policy.AllowedSheetNames);
+            Callgates = string.Join(", ", policy.AllowedCallgates);
+            TargetObjectIds = string.Join(", ", policy.AllowedTargetObjectIds);
+            MaximumResultCount = policy.MaximumResultCount;
+            MaximumCallsPerMinute = policy.MaximumCallsPerMinute;
+        }
+
+        public CapabilityAccessMode Access { get; set; }
+
+        public string PluginNames = string.Empty;
+        public string ActionTypes = string.Empty;
+        public string ActionIds = string.Empty;
+        public string ClassJobIds = string.Empty;
+        public string TerritoryIds = string.Empty;
+        public string SheetNames = string.Empty;
+        public string Callgates = string.Empty;
+        public string TargetObjectIds = string.Empty;
+        public int MaximumResultCount;
+        public int MaximumCallsPerMinute;
+    }
+
+    private void DrawPendingApprovals()
+    {
+        IReadOnlyList<Hosting.CapabilityApprovalRequest> pending = approvalService.GetPending();
+        if (pending.Count == 0)
+            return;
+
+        ImGui.Spacing();
+        if (!ImGui.BeginChild("PendingApprovalsPanel", new Vector2(0f, 230f), true))
+        {
+            ImGui.EndChild();
+            return;
+        }
+
+        DrawPanelTitle(
+            localization["approvals.title"],
+            localization.Format("approvals.subtitle", pending.Count));
+        foreach (Hosting.CapabilityApprovalRequest approval in pending)
+        {
+            ImGui.PushID(approval.Id);
+            ImGui.TextColored(WarningColor, $"{approval.OperationId} [{approval.PermissionScope}]");
+            ImGui.TextWrapped(approval.ArgumentsJson);
+            if (ImGui.Button(localization["approvals.approve"], new Vector2(150f, 0f)))
+                approvalService.Approve(approval.Id);
+            ImGui.SameLine();
+            if (ImGui.Button(localization["approvals.deny"], new Vector2(150f, 0f)))
+                approvalService.Deny(approval.Id);
+            ImGui.Separator();
+            ImGui.PopID();
         }
 
         ImGui.EndChild();

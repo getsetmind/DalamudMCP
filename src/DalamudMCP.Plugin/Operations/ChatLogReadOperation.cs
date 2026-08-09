@@ -67,6 +67,9 @@ public sealed partial class ChatLogReadOperation
         [Option("since", Description = "Only return entries at or after this UTC timestamp.", Required = false)]
         public DateTimeOffset? Since { get; init; }
 
+        [Option("after-cursor", Description = "Return entries with a monotonic cursor greater than this value.", Required = false)]
+        public long? AfterCursor { get; init; }
+
         [Option("max-count", Description = "Maximum number of entries to return.", Required = false)]
         public int? MaxCount { get; init; }
     }
@@ -93,13 +96,36 @@ public sealed partial class ChatLogReadOperation
             int maxCount = request.MaxCount is > 0
                 ? Math.Min(request.MaxCount.Value, 500)
                 : 100;
+            if (request.AfterCursor.HasValue)
+            {
+                ChatLogCursorPage page = logBuffer.GetAfterCursor(
+                    request.AfterCursor.Value,
+                    channelFilter,
+                    request.Since,
+                    maxCount);
+                return ValueTask.FromResult(new ChatLogSnapshot(
+                    DateTimeOffset.UtcNow,
+                    page.Entries,
+                    page.TotalFilteredCount,
+                    $"{page.Entries.Length} log entries returned.",
+                    page.NextCursor,
+                    page.OldestCursor,
+                    page.DroppedCount,
+                    page.Truncated));
+            }
+
             IReadOnlyList<ChatLogEntry> entries = logBuffer.GetRecent(channelFilter, request.Since, maxCount);
+            long nextCursor = entries.Count == 0 ? 0 : entries.Max(static entry => entry.Cursor);
 
             return ValueTask.FromResult(new ChatLogSnapshot(
                 DateTimeOffset.UtcNow,
                 entries.ToArray(),
                 entries.Count,
-                $"{entries.Count} log entries returned."));
+                $"{entries.Count} log entries returned.",
+                nextCursor,
+                0,
+                logBuffer.DroppedCount,
+                false));
         };
     }
 
@@ -124,4 +150,8 @@ public sealed partial record ChatLogSnapshot(
     DateTimeOffset CapturedAt,
     ChatLogEntry[] Entries,
     int TotalFilteredCount,
-    string SummaryText);
+    string SummaryText,
+    long NextCursor = 0,
+    long OldestCursor = 0,
+    long DroppedCount = 0,
+    bool Truncated = false);

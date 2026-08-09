@@ -51,6 +51,7 @@ public sealed class PluginCompositionRoot : IAsyncDisposable
         IGameGui gameGui,
         IChatGui chatGui,
         ITargetManager targetManager,
+        IPartyList partyList,
         ICommandManager commandManager,
         string? pipeName = null)
     {
@@ -67,6 +68,7 @@ public sealed class PluginCompositionRoot : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(gameGui);
         ArgumentNullException.ThrowIfNull(chatGui);
         ArgumentNullException.ThrowIfNull(targetManager);
+        ArgumentNullException.ThrowIfNull(partyList);
         ArgumentNullException.ThrowIfNull(commandManager);
 
         PluginRuntimeOptions options = PluginRuntimeOptions.CreateDefault(pluginInterface.ConfigDirectory.FullName, pipeName);
@@ -85,6 +87,7 @@ public sealed class PluginCompositionRoot : IAsyncDisposable
             gameGui,
             chatGui,
             targetManager,
+            partyList,
             commandManager);
 
         return new PluginCompositionRoot(

@@ -44,8 +44,11 @@ public sealed partial record ProtocolResponseEnvelope(
 
 public static class ProtocolContract
 {
-    public const string CurrentVersion = "2.0.0";
+    public const string HttpBearerTokenEnvironmentVariableName = "DALAMUD_MCP_HTTP_TOKEN";
+
+    public const string CurrentVersion = "3.0.0";
     public const string DefaultRequestId = "0";
+    public const int MaximumFrameLength = 16 * 1024 * 1024;
 
     public static JsonSerializerOptions JsonOptions { get; } = CreateJsonOptions();
 

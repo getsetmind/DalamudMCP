@@ -63,6 +63,23 @@ public sealed class ChatLogBufferServiceTests
         Assert.Equal(500, result.Count);
     }
 
+    [Fact]
+    public void GetAfterCursor_returns_ascending_page_and_next_cursor()
+    {
+        ChatLogBufferService service = CreateService();
+        AddEntry(service, MakeEntry(XivChatType.Say, cursor: 1));
+        AddEntry(service, MakeEntry(XivChatType.Party, cursor: 2));
+        AddEntry(service, MakeEntry(XivChatType.Say, cursor: 3));
+
+        ChatLogCursorPage page = service.GetAfterCursor(1, maxCount: 1);
+
+        Assert.Single(page.Entries);
+        Assert.Equal(2, page.Entries[0].Cursor);
+        Assert.Equal(2, page.NextCursor);
+        Assert.True(page.Truncated);
+        Assert.Equal(2, page.TotalFilteredCount);
+    }
+
     private static ChatLogBufferService CreateService()
     {
         ChatLogBufferService service = (ChatLogBufferService)RuntimeHelpers.GetUninitializedObject(typeof(ChatLogBufferService));
@@ -75,7 +92,8 @@ public sealed class ChatLogBufferServiceTests
     private static ChatLogEntry MakeEntry(
         XivChatType type,
         DateTimeOffset? timestamp = null,
-        string message = "test")
+        string message = "test",
+        long cursor = 0)
     {
         return new ChatLogEntry(
             Guid.NewGuid(),
@@ -86,7 +104,8 @@ public sealed class ChatLogBufferServiceTests
             null,
             message,
             XivChatRelationKind.None,
-            XivChatRelationKind.None);
+            XivChatRelationKind.None,
+            cursor);
     }
 
     private static void AddEntry(ChatLogBufferService service, ChatLogEntry entry)

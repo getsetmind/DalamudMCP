@@ -1,4 +1,6 @@
-using System.Text.Json;
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
 using DalamudMCP.Protocol;
 using Manifold.Cli;
 using Microsoft.AspNetCore.Builder;
@@ -7,21 +9,23 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace DalamudMCP.Cli;
 
 public static class CliHttpServerRunner
 {
-    private const string CurrentProtocolVersion = "2025-03-26";
-    private const string StreamableHttpContentType = "text/event-stream";
-
     public static async Task<int> RunAsync(CliRuntimeOptions? options = null, CancellationToken cancellationToken = default)
     {
         if (options is null || string.IsNullOrWhiteSpace(options.PipeName))
             throw new InvalidOperationException("A live --pipe connection is required.");
+
+        string? bearerToken = Environment.GetEnvironmentVariable(ProtocolContract.HttpBearerTokenEnvironmentVariableName);
+        if (string.IsNullOrWhiteSpace(bearerToken))
+        {
+            throw new InvalidOperationException(
+                $"Set {ProtocolContract.HttpBearerTokenEnvironmentVariableName} before starting the HTTP server.");
+        }
 
         NamedPipeProtocolClient protocolClient = new(options.PipeName);
         DescribeOperationsResponse catalog = await protocolClient.DescribeOperationsAsync(cancellationToken).ConfigureAwait(false);
@@ -30,50 +34,51 @@ public static class CliHttpServerRunner
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
         builder.WebHost.UseUrls(BuildListenUrl(options));
         builder.Logging.ClearProviders();
+        builder.Services.AddHostFiltering(hostOptions =>
+        {
+            hostOptions.AllowedHosts = ["127.0.0.1", "localhost", "[::1]"];
+        });
         builder.Services.AddSingleton<IProtocolOperationClient>(protocolClient);
         builder.Services.AddSingleton(toolService);
         builder.Services
             .AddMcpServer()
+            .WithHttpTransport(transportOptions => transportOptions.Stateless = true)
             .WithListToolsHandler((requestContext, ct) => toolService.ListToolsAsync(requestContext, ct))
             .WithCallToolHandler((requestContext, ct) => toolService.CallToolAsync(requestContext, ct));
 
-        builder.Services.AddSingleton(sp =>
+        await using WebApplication app = builder.Build();
+        app.UseHostFiltering();
+        app.Use(async (context, next) =>
         {
-            StreamableHttpServerTransport transport = new(sp.GetRequiredService<ILoggerFactory>())
+            if (context.Request.Path.Equals(options.HttpPath) &&
+                !IsAllowedOrigin(context.Request.Headers.Origin))
             {
-                Stateless = true
-            };
-            return transport;
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsync("The request Origin is not allowed.", context.RequestAborted)
+                    .ConfigureAwait(false);
+                return;
+            }
+
+            if (context.Request.Path.Equals(options.HttpPath) &&
+                !IsAuthorized(context.Request.Headers.Authorization, bearerToken))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.Headers.WWWAuthenticate = "Bearer";
+                await context.Response.WriteAsync("A valid bearer token is required.", context.RequestAborted)
+                    .ConfigureAwait(false);
+                return;
+            }
+
+            await next(context).ConfigureAwait(false);
         });
+        app.MapMcp(options.HttpPath);
 
-        WebApplication app = builder.Build();
-        StreamableHttpServerTransport transport = app.Services.GetRequiredService<StreamableHttpServerTransport>();
-        McpServerOptions serverOptions = app.Services.GetRequiredService<IOptions<McpServerOptions>>().Value;
-        ILoggerFactory loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
-        McpServer server = McpServer.Create(transport, serverOptions, loggerFactory, app.Services);
-
-        MapEndpoint(app, transport, options.HttpPath);
-
-        Task serverTask = server.RunAsync(cancellationToken);
         try
         {
-            await app.StartAsync(cancellationToken).ConfigureAwait(false);
-            await ((IHost)app).WaitForShutdownAsync(cancellationToken).ConfigureAwait(false);
+            await app.RunAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-        }
-        finally
-        {
-            await transport.DisposeAsync().ConfigureAwait(false);
-            await app.DisposeAsync().ConfigureAwait(false);
-            try
-            {
-                await serverTask.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-            }
         }
 
         return CliExitCodes.Success;
@@ -91,57 +96,30 @@ public static class CliHttpServerRunner
         return $"{BuildListenUrl(options)}{options.HttpPath}";
     }
 
-    private static void MapEndpoint(
-        WebApplication app,
-        StreamableHttpServerTransport transport,
-        string path)
+    internal static bool IsAllowedOrigin(string? origin)
     {
-        string normalizedPath = string.IsNullOrWhiteSpace(path)
-            ? CliRuntimeOptions.DefaultHttpPath
-            : path;
+        if (string.IsNullOrWhiteSpace(origin))
+            return true;
 
-        app.MapMethods(normalizedPath, ["GET"], async context =>
-        {
-            AddProtocolVersionHeader(context);
-            context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
-            await context.Response.WriteAsync("This MCP endpoint expects POST requests.", context.RequestAborted)
-                .ConfigureAwait(false);
-        });
-
-        app.MapMethods(normalizedPath, ["POST"], async context =>
-        {
-            AddProtocolVersionHeader(context);
-
-            JsonRpcMessage? message = await JsonSerializer.DeserializeAsync<JsonRpcMessage>(
-                    context.Request.Body,
-                    cancellationToken: context.RequestAborted)
-                .ConfigureAwait(false);
-            if (message is null)
-            {
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await context.Response.WriteAsync("The MCP request body was empty or invalid.", context.RequestAborted)
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            await using PooledBufferStream responseBuffer = new();
-            bool wroteResponse = await transport.HandlePostRequestAsync(message, responseBuffer, context.RequestAborted)
-                .ConfigureAwait(false);
-            context.Response.StatusCode = wroteResponse
-                ? StatusCodes.Status200OK
-                : StatusCodes.Status202Accepted;
-            if (!wroteResponse)
-                return;
-
-            context.Response.ContentType = StreamableHttpContentType;
-            context.Response.ContentLength = responseBuffer.Length;
-            await context.Response.Body.WriteAsync(responseBuffer.WrittenMemory, context.RequestAborted).ConfigureAwait(false);
-            await context.Response.Body.FlushAsync(context.RequestAborted).ConfigureAwait(false);
-        });
+        return Uri.TryCreate(origin, UriKind.Absolute, out Uri? uri) &&
+               uri.IsLoopback &&
+               (string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static void AddProtocolVersionHeader(HttpContext context)
+    internal static bool IsAuthorized(string? authorizationHeader, string? configuredToken)
     {
-        context.Response.Headers["MCP-Protocol-Version"] = CurrentProtocolVersion;
+        if (string.IsNullOrWhiteSpace(configuredToken))
+            return false;
+        if (!AuthenticationHeaderValue.TryParse(authorizationHeader, out AuthenticationHeaderValue? authorization) ||
+            !string.Equals(authorization.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase) ||
+            string.IsNullOrWhiteSpace(authorization.Parameter))
+        {
+            return false;
+        }
+
+        byte[] expected = Encoding.UTF8.GetBytes(configuredToken);
+        byte[] actual = Encoding.UTF8.GetBytes(authorization.Parameter);
+        return expected.Length == actual.Length && CryptographicOperations.FixedTimeEquals(expected, actual);
     }
 }

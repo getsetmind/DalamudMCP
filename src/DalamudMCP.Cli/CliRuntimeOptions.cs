@@ -71,6 +71,7 @@ public sealed class CliRuntimeOptions
           dalamudmcp [--pipe <name>] <operation> [arguments] [--json]
           dalamudmcp [--pipe <name>] serve mcp
           dalamudmcp [--pipe <name>] serve http [--port <number>] [--path <path>]
+          dalamudmcp [--pipe <name>] supervise self-package --action <update|uninstall> [--use-testing] [--timeout-seconds <30..300>]
         """;
 
     public static bool TryParse(
@@ -93,6 +94,20 @@ public sealed class CliRuntimeOptions
         {
             options = null;
             return false;
+        }
+
+        if (remainingArgs.Count >= 2 &&
+            string.Equals(remainingArgs[0], "supervise", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(remainingArgs[1], "self-package", StringComparison.OrdinalIgnoreCase))
+        {
+            options = new CliRuntimeOptions(
+                CliCommandMode.SuperviseSelfPackage,
+                [.. remainingArgs.Skip(2)],
+                pipeName,
+                DefaultHttpPort,
+                DefaultHttpPath);
+            errorMessage = null;
+            return true;
         }
 
         if (remainingArgs.Count >= 2 &&
@@ -238,5 +253,6 @@ public enum CliCommandMode
 {
     DirectCli = 0,
     ServeMcp = 1,
-    ServeHttp = 2
+    ServeHttp = 2,
+    SuperviseSelfPackage = 3,
 }

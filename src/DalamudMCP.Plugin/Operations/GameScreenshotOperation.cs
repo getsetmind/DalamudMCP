@@ -1,9 +1,12 @@
+using System.Buffers.Binary;
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using Manifold;
 using DalamudMCP.Plugin.Readers;
+using DalamudMCP.Plugin.Services;
 using DalamudMCP.Protocol;
+using Manifold;
 using MemoryPack;
 
 namespace DalamudMCP.Plugin.Operations;
@@ -23,11 +26,12 @@ public sealed partial class GameScreenshotOperation
     private readonly Func<string>? detailProvider;
     private readonly string unavailableDetail;
 
-    public GameScreenshotOperation(PluginRuntimeOptions options)
+    public GameScreenshotOperation(PluginRuntimeOptions options, ScreenshotFileCleanupService cleanup)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(cleanup);
 
-        executor = CreateCaptureExecutor(options.CaptureDirectoryPath);
+        executor = CreateCaptureExecutor(options.CaptureDirectoryPath, cleanup);
         isReadyProvider = static () => WindowBitmapCaptureHelper.HasCapturableWindow();
         detailProvider = () => isReadyProvider() ? "ready" : "window_unavailable";
         unavailableDetail = "window_unavailable";
@@ -65,6 +69,12 @@ public sealed partial class GameScreenshotOperation
     {
         [Option("capture-area", Description = "Capture area to use: client or window.", Required = false)]
         public string? CaptureArea { get; init; }
+
+        [Option("save", Description = "Also save the PNG under the plugin capture directory. Requires screenshot.save permission.", Required = false)]
+        public bool? Save { get; init; }
+
+        [Option("ttl-seconds", Description = "Lifetime of a saved file before deletion, from 60 through 86400 seconds.", Required = false)]
+        public int? TtlSeconds { get; init; }
     }
 
     public sealed class TextFormatter : IResultFormatter<GameScreenshotSnapshot>
@@ -78,7 +88,9 @@ public sealed partial class GameScreenshotOperation
         }
     }
 
-    private static Func<Request, CancellationToken, ValueTask<GameScreenshotSnapshot>> CreateCaptureExecutor(string captureDirectoryPath)
+    private static Func<Request, CancellationToken, ValueTask<GameScreenshotSnapshot>> CreateCaptureExecutor(
+        string captureDirectoryPath,
+        ScreenshotFileCleanupService cleanup)
     {
         return (request, cancellationToken) =>
         {
@@ -87,15 +99,39 @@ public sealed partial class GameScreenshotOperation
             if (!WindowBitmapCaptureHelper.TryCaptureToBitmapFile(captureDirectoryPath, captureArea, out WindowBitmapCaptureHelper.BitmapCaptureResult result))
                 throw new InvalidOperationException("A capturable game window is not available.");
 
-            return ValueTask.FromResult(
-                new GameScreenshotSnapshot(
+            try
+            {
+                byte[] png = WindowBitmapCaptureHelper.ConvertBitmapFileToPng(result.FilePath, result.Width, result.Height, out int width, out int height);
+                bool save = request.Save ?? false;
+                string? filePath = null;
+                DateTimeOffset? expiresAtUtc = null;
+                if (save)
+                {
+                    int ttlSeconds = Math.Clamp(request.TtlSeconds ?? 600, 60, 86400);
+                    filePath = Path.ChangeExtension(result.FilePath, ".png");
+                    File.WriteAllBytes(filePath, png);
+                    expiresAtUtc = DateTimeOffset.UtcNow.AddSeconds(ttlSeconds);
+                    cleanup.Register(filePath, expiresAtUtc.Value);
+                }
+
+                return ValueTask.FromResult(new GameScreenshotSnapshot(
                     result.CapturedAt,
                     captureArea,
-                    result.FilePath,
-                    result.Width,
-                    result.Height,
-                    result.FileSizeBytes,
-                    $"Captured {captureArea} screenshot to {Path.GetFileName(result.FilePath)} ({result.Width}x{result.Height})."));
+                    filePath,
+                    width,
+                    height,
+                    png.LongLength,
+                    save
+                        ? $"Captured {captureArea} screenshot as PNG ({width}x{height}); the saved copy expires at {expiresAtUtc:O}."
+                        : $"Captured {captureArea} screenshot as PNG image content ({width}x{height}).",
+                    "image/png",
+                    Convert.ToBase64String(png),
+                    expiresAtUtc));
+            }
+            finally
+            {
+                WindowBitmapCaptureHelper.TryDelete(result.FilePath);
+            }
         };
     }
 
@@ -121,7 +157,7 @@ public sealed partial class GameScreenshotOperation
     }
 
     [SupportedOSPlatform("windows")]
-    private static class WindowBitmapCaptureHelper
+    internal static class WindowBitmapCaptureHelper
     {
         private const int BitsPerPixel = 32;
         private const int BytesPerPixel = BitsPerPixel / 8;
@@ -394,7 +430,88 @@ public sealed partial class GameScreenshotOperation
             writer.Write(pixels);
         }
 
-        private static void TryDelete(string filePath)
+        internal static byte[] ConvertBitmapFileToPng(
+            string filePath,
+            int sourceWidth,
+            int sourceHeight,
+            out int width,
+            out int height)
+        {
+            byte[] bitmap = File.ReadAllBytes(filePath);
+            if (bitmap.Length < 54 || bitmap[0] != (byte)'B' || bitmap[1] != (byte)'M')
+                throw new InvalidDataException("The captured bitmap was invalid.");
+            int pixelOffset = BinaryPrimitives.ReadInt32LittleEndian(bitmap.AsSpan(10, 4));
+            int bitmapWidth = Math.Abs(BinaryPrimitives.ReadInt32LittleEndian(bitmap.AsSpan(18, 4)));
+            int bitmapHeight = Math.Abs(BinaryPrimitives.ReadInt32LittleEndian(bitmap.AsSpan(22, 4)));
+            if (bitmapWidth != sourceWidth || bitmapHeight != sourceHeight || pixelOffset < 54)
+                throw new InvalidDataException("The captured bitmap dimensions were invalid.");
+
+            double scale = Math.Min(1, Math.Min(1920d / bitmapWidth, 1080d / bitmapHeight));
+            width = Math.Max(1, (int)Math.Round(bitmapWidth * scale));
+            height = Math.Max(1, (int)Math.Round(bitmapHeight * scale));
+            byte[] scanlines = new byte[checked(height * (1 + (width * 4)))];
+            for (int y = 0; y < height; y++)
+            {
+                int destinationRow = y * (1 + (width * 4));
+                scanlines[destinationRow] = 0;
+                int sourceY = bitmapHeight - 1 - Math.Min(bitmapHeight - 1, (int)(y / scale));
+                for (int x = 0; x < width; x++)
+                {
+                    int sourceX = Math.Min(bitmapWidth - 1, (int)(x / scale));
+                    int source = pixelOffset + ((sourceY * bitmapWidth + sourceX) * 4);
+                    int destination = destinationRow + 1 + (x * 4);
+                    scanlines[destination] = bitmap[source + 2];
+                    scanlines[destination + 1] = bitmap[source + 1];
+                    scanlines[destination + 2] = bitmap[source];
+                    scanlines[destination + 3] = bitmap[source + 3];
+                }
+            }
+
+            using MemoryStream compressed = new();
+            using (ZLibStream zlib = new(compressed, CompressionLevel.SmallestSize, leaveOpen: true))
+                zlib.Write(scanlines);
+            using MemoryStream png = new();
+            png.Write([137, 80, 78, 71, 13, 10, 26, 10]);
+            Span<byte> header = stackalloc byte[13];
+            BinaryPrimitives.WriteInt32BigEndian(header[..4], width);
+            BinaryPrimitives.WriteInt32BigEndian(header.Slice(4, 4), height);
+            header[8] = 8;
+            header[9] = 6;
+            WritePngChunk(png, "IHDR"u8, header);
+            WritePngChunk(png, "IDAT"u8, compressed.ToArray());
+            WritePngChunk(png, "IEND"u8, []);
+            return png.ToArray();
+        }
+
+        private static void WritePngChunk(Stream stream, ReadOnlySpan<byte> type, ReadOnlySpan<byte> data)
+        {
+            Span<byte> length = stackalloc byte[4];
+            BinaryPrimitives.WriteInt32BigEndian(length, data.Length);
+            stream.Write(length);
+            stream.Write(type);
+            stream.Write(data);
+            byte[] crcInput = new byte[type.Length + data.Length];
+            type.CopyTo(crcInput);
+            data.CopyTo(crcInput.AsSpan(type.Length));
+            Span<byte> crc = stackalloc byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(crc, ComputeCrc32(crcInput));
+            stream.Write(crc);
+        }
+
+        private static uint ComputeCrc32(ReadOnlySpan<byte> data)
+        {
+            uint crc = uint.MaxValue;
+            foreach (byte value in data)
+            {
+                crc ^= value;
+                for (int bit = 0; bit < 8; bit++)
+                    crc = (crc >> 1) ^ ((crc & 1) == 0 ? 0u : 0xEDB88320u);
+            }
+
+            return ~crc;
+        }
+
+        internal static void TryDelete(string filePath)
         {
             try
             {
@@ -564,8 +681,11 @@ public sealed partial class GameScreenshotOperation
 public sealed partial record GameScreenshotSnapshot(
     DateTimeOffset CapturedAt,
     string CaptureArea,
-    string FilePath,
+    string? FilePath,
     int Width,
     int Height,
     long FileSizeBytes,
-    string SummaryText);
+    string SummaryText,
+    string MimeType = "image/png",
+    string? Base64Data = null,
+    DateTimeOffset? ExpiresAtUtc = null);
