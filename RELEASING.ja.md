@@ -95,7 +95,11 @@ src/DalamudMCP.Plugin/bin/Release/DalamudMCP/latest.zip
 
 ## 7. 公式 MCP Registry へ公開する
 
-公式の `mcp-publisher` を取得し、GitHub アカウントでログインします。
+NuGet の README が flat container API から取得できることを確認した後、GitHub Actions の `publish-mcp-registry` workflow を手動実行します。
+公開する annotated tag を指定すると、workflow が NuGet の所有確認用マーカーを検査し、GitHub OIDC で Registry へログインして公開します。
+OIDC を使うため、Registry 用のシークレットは不要です。
+
+ローカルから公開する必要がある場合は、公式の `mcp-publisher` を取得し、GitHub アカウントでログインします。
 
 ```powershell
 .\mcp-publisher.exe login github
