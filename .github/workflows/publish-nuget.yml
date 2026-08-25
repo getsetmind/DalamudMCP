@@ -1,0 +1,74 @@
+name: publish-nuget
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Annotated release tag to publish
+        required: true
+        default: v1.1.0
+        type: string
+
+run-name: Publish NuGet package from ${{ inputs.ref }}
+
+concurrency:
+  group: publish-nuget-${{ inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: |
+            **/packages.lock.json
+      - name: Verify release tag and API key
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:NUGET_API_KEY)) {
+            throw 'The NUGET_API_KEY Actions secret is not configured.'
+          }
+
+          $tag = git describe --tags --exact-match HEAD
+          if ($LASTEXITCODE -ne 0) {
+            throw 'The selected ref is not an annotated release tag.'
+          }
+
+          [xml]$props = Get-Content ./Directory.Build.props
+          $version = [string]$props.Project.PropertyGroup[0].Version
+          if ($tag -ne "v$version") {
+            throw "Tag $tag does not match package version $version."
+          }
+      - name: Pack
+        shell: pwsh
+        run: |
+          dotnet restore ./src/DalamudMCP.Cli/DalamudMCP.Cli.csproj --locked-mode
+          dotnet pack ./src/DalamudMCP.Cli/DalamudMCP.Cli.csproj `
+            --configuration Release `
+            --no-restore `
+            --output ./artifacts/nuget
+      - name: Publish to NuGet.org
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          $packages = @(Get-ChildItem ./artifacts/nuget -Filter *.nupkg)
+          if ($packages.Count -ne 1) {
+            throw "Expected one NuGet package, found $($packages.Count)."
+          }
+
+          dotnet nuget push $packages[0].FullName `
+            --api-key $env:NUGET_API_KEY `
+            --source https://api.nuget.org/v3/index.json `
+            --skip-duplicate
