@@ -66,7 +66,13 @@ NuGet と公式 MCP Registry は、マージ後のコミットから作った成
 ## 5. NuGet.org へ公開する
 
 公開直前に、同じパッケージ ID とバージョンが未使用であることを確認します。
-API キーはファイルやコマンド履歴へ保存せず、現在の PowerShell セッションだけで環境変数へ設定します。
+NuGet.org で `Garume` 所有者の短期 API キーを作り、対象を `DalamudMCP.Cli` に限定します。
+そのキーをリポジトリの Actions secret `NUGET_API_KEY` に登録します。
+
+GitHub Actions の `publish-nuget` workflow を手動実行し、公開する annotated tag を指定します。
+workflow はタグと `Directory.Build.props` のバージョンが一致することを確認し、そのタグのソースからパッケージを作成して公開します。
+
+ローカルから公開する必要がある場合だけ、API キーを現在の PowerShell セッションの環境変数へ設定して次のコマンドを実行します。
 
 ```powershell
 .\.dotnet\dotnet.exe nuget push .\artifacts\nuget\DalamudMCP.Cli.1.1.0.nupkg `
