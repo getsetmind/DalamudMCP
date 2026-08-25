@@ -1,7 +1,6 @@
 using System.Runtime.Versioning;
 using Dalamud.Game.NativeWrapper;
 using Dalamud.Plugin.Services;
-using Manifold;
 using DalamudMCP.Protocol;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -9,6 +8,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.Interop;
 using FFXIVClientStructs.STD;
 using InteropGenerator.Runtime;
+using Manifold;
 using MemoryPack;
 
 namespace DalamudMCP.Plugin.Operations;
@@ -363,13 +363,12 @@ public sealed partial class AddonSelectMenuItemOperation : IOperation<AddonSelec
     [SupportedOSPlatform("windows")]
     private static unsafe bool IsSelectableTelepotTownItem(AtkComponentTreeListItem* item)
     {
-        AtkComponentTreeListItemType? itemType = TryReadTreeListItemType(item->UIntValues.AsSpan());
-        return itemType switch
+        return item->Type switch
         {
-            AtkComponentTreeListItemType.Leaf => true,
-            AtkComponentTreeListItemType.LastLeafInGroup => true,
-            AtkComponentTreeListItemType.CollapsibleGroupHeader => false,
-            AtkComponentTreeListItemType.GroupHeader => false,
+            TreeListItemType.None => true,
+            TreeListItemType.LastItemInGroup => true,
+            TreeListItemType.Group => false,
+            TreeListItemType.SectionHeader => false,
             _ => true
         };
     }
@@ -532,19 +531,6 @@ public sealed partial class AddonSelectMenuItemOperation : IOperation<AddonSelec
     private static bool IsIgnorablePrefix(char value)
     {
         return value is ' ' or '\u3000' or '・' or '•' or '★' or '☆' or '▶' or '►' or '◆' or '◇' or '◉' or '○';
-    }
-
-    private static AtkComponentTreeListItemType? TryReadTreeListItemType(ReadOnlySpan<uint> values)
-    {
-        foreach (uint value in values)
-        {
-            if (value > (uint)AtkComponentTreeListItemType.GroupHeader)
-                continue;
-
-            return (AtkComponentTreeListItemType)value;
-        }
-
-        return null;
     }
 
     private static bool TryGetReadyAddon(

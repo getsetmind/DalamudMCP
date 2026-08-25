@@ -1,6 +1,7 @@
+using System.Diagnostics;
 using System.Reflection;
-using Manifold;
 using DalamudMCP.Protocol;
+using Manifold;
 
 namespace DalamudMCP.Plugin.Hosting;
 
@@ -8,18 +9,14 @@ public sealed class OperationProtocolDispatcher(
     IServiceProvider services,
     IOperationInvoker operationInvoker,
     IReadOnlyList<OperationDescriptor> operations,
-    Configuration.IPluginUiConfigurationAccessor configurationStore)
+    Configuration.IPluginUiConfigurationAccessor configurationStore,
+    OperationAuditLog? auditLog = null,
+    CapabilityApprovalService? approvalService = null,
+    CapabilityRateLimiter? rateLimiter = null)
 {
     private const string DescribeOperationsRequestType = "__system.describe-operations";
 
     private readonly Dictionary<string, OperationDescriptor> operationsByRequestType = BuildRequestMap(operations);
-    private readonly byte[] fullCatalogPayload = SerializeCatalog(operations);
-    private readonly byte[] actionDisabledCatalogPayload = SerializeCatalog(
-        PluginOperationExposurePolicy.FilterProtocolOperations(operations, enableActionOperations: false, enableUnsafeOperations: true).ToArray());
-    private readonly byte[] unsafeDisabledCatalogPayload = SerializeCatalog(
-        PluginOperationExposurePolicy.FilterProtocolOperations(operations, enableActionOperations: true, enableUnsafeOperations: false).ToArray());
-    private readonly byte[] safeCatalogPayload = SerializeCatalog(
-        PluginOperationExposurePolicy.FilterProtocolOperations(operations, enableActionOperations: false, enableUnsafeOperations: false).ToArray());
 
     public async ValueTask<ProtocolResponseEnvelope> DispatchAsync(
         ProtocolRequestEnvelope request,
@@ -41,7 +38,7 @@ public sealed class OperationProtocolDispatcher(
                 null,
                 null,
                 ProtocolPayloadFormat.MemoryPack,
-                SelectCatalogPayload(current.EnableActionOperations, current.EnableUnsafeOperations));
+                SerializeCatalog(PluginOperationExposurePolicy.FilterProtocolOperations(operations, current).ToArray()));
         }
 
         if (!operationsByRequestType.TryGetValue(request.RequestType, out OperationDescriptor? descriptor) ||
@@ -53,23 +50,51 @@ public sealed class OperationProtocolDispatcher(
                 $"Unknown protocol request '{request.RequestType}'.");
         }
 
-        if (!PluginOperationExposurePolicy.IsEnabled(
-                descriptor,
-                configurationStore.Current.EnableActionOperations,
-                configurationStore.Current.EnableUnsafeOperations))
-        {
-            return ProtocolContract.CreateErrorResponse(
-                requestId,
-                "disabled",
-                $"Operation '{descriptor.OperationId}' is disabled. Enable action operations in the plugin settings to use it.");
-        }
-
+        long startedAt = Stopwatch.GetTimestamp();
+        object? typedRequest = null;
+        CapabilityAuthorizationDecision? authorization = null;
         try
         {
-            object? typedRequest = ProtocolContract.DeserializePayload(
+            typedRequest = ProtocolContract.DeserializePayload(
                 request.PayloadFormat,
                 request.Payload,
                 descriptor.RequestType);
+            authorization = PluginOperationExposurePolicy.Authorize(
+                descriptor,
+                configurationStore.Current,
+                typedRequest);
+            if (authorization.RequiresConfirmation && approvalService is not null)
+                authorization = approvalService.AuthorizeOrQueue(descriptor, typedRequest, authorization);
+
+            if (authorization.IsAllowed &&
+                rateLimiter is not null &&
+                !rateLimiter.TryAcquire(
+                    authorization.PermissionScope,
+                    typedRequest,
+                    authorization.MaximumCallsPerMinute,
+                    out TimeSpan retryAfter))
+            {
+                authorization = CapabilityAuthorizationDecision.Denied(
+                    authorization.PermissionScope,
+                    $"Capability rate limit exceeded. Retry after {Math.Ceiling(retryAfter.TotalSeconds)} seconds.");
+            }
+
+            if (!authorization.IsAllowed)
+            {
+                string errorCode = authorization.RequiresConfirmation ? "confirmation_required" : "permission_denied";
+                await WriteAuditAsync(
+                    descriptor,
+                    requestId,
+                    typedRequest,
+                    result: null,
+                    authorization,
+                    succeeded: false,
+                    errorCode,
+                    (long)Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds,
+                    cancellationToken).ConfigureAwait(false);
+                return ProtocolContract.CreateErrorResponse(requestId, errorCode, authorization.Reason!);
+            }
+
             if (!operationInvoker.TryInvoke(
                     descriptor.OperationId,
                     typedRequest,
@@ -78,6 +103,16 @@ public sealed class OperationProtocolDispatcher(
                     cancellationToken,
                     out ValueTask<OperationInvocationResult> invocation))
             {
+                await WriteAuditAsync(
+                    descriptor,
+                    requestId,
+                    typedRequest,
+                    result: null,
+                    authorization,
+                    succeeded: false,
+                    "unavailable",
+                    (long)Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds,
+                    cancellationToken).ConfigureAwait(false);
                 return ProtocolContract.CreateErrorResponse(
                     requestId,
                     "unavailable",
@@ -85,6 +120,17 @@ public sealed class OperationProtocolDispatcher(
             }
 
             OperationInvocationResult result = await invocation.ConfigureAwait(false);
+            bool domainSucceeded = IsDomainSuccess(result.Result);
+            await WriteAuditAsync(
+                descriptor,
+                requestId,
+                typedRequest,
+                result.Result,
+                authorization,
+                domainSucceeded,
+                domainSucceeded ? null : "domain_failure",
+                (long)Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds,
+                cancellationToken).ConfigureAwait(false);
             return ProtocolContract.CreateSuccessResponse(
                 requestId,
                 result.Result,
@@ -94,10 +140,26 @@ public sealed class OperationProtocolDispatcher(
         }
         catch (ArgumentException exception)
         {
+            await WriteFailedAuditAsync(
+                descriptor,
+                requestId,
+                typedRequest,
+                authorization,
+                "invalid_request",
+                startedAt,
+                cancellationToken).ConfigureAwait(false);
             return ProtocolContract.CreateErrorResponse(requestId, "invalid_request", exception.Message);
         }
         catch (InvalidOperationException exception)
         {
+            await WriteFailedAuditAsync(
+                descriptor,
+                requestId,
+                typedRequest,
+                authorization,
+                "unavailable",
+                startedAt,
+                cancellationToken).ConfigureAwait(false);
             return ProtocolContract.CreateErrorResponse(requestId, "unavailable", exception.Message);
         }
     }
@@ -153,14 +215,65 @@ public sealed class OperationProtocolDispatcher(
                ?? [];
     }
 
-    private byte[] SelectCatalogPayload(bool enableActionOperations, bool enableUnsafeOperations)
+    private static bool IsDomainSuccess(object? result)
     {
-        return (enableActionOperations, enableUnsafeOperations) switch
-        {
-            (true, true) => fullCatalogPayload,
-            (true, false) => unsafeDisabledCatalogPayload,
-            (false, true) => actionDisabledCatalogPayload,
-            _ => safeCatalogPayload
-        };
+        if (result is null)
+            return true;
+
+        PropertyInfo? successProperty = result.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .FirstOrDefault(static property =>
+                property.PropertyType == typeof(bool) &&
+                (string.Equals(property.Name, "Success", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(property.Name, "Succeeded", StringComparison.OrdinalIgnoreCase)));
+        return successProperty?.GetValue(result) is not bool succeeded || succeeded;
+    }
+
+    private ValueTask WriteAuditAsync(
+        OperationDescriptor operation,
+        string requestId,
+        object? request,
+        object? result,
+        CapabilityAuthorizationDecision authorization,
+        bool succeeded,
+        string? errorCode,
+        long elapsedMilliseconds,
+        CancellationToken cancellationToken)
+    {
+        return auditLog is null
+            ? ValueTask.CompletedTask
+            : auditLog.WriteAsync(
+                operation,
+                requestId,
+                request,
+                result,
+                authorization,
+                succeeded,
+                errorCode,
+                elapsedMilliseconds,
+                cancellationToken);
+    }
+
+    private ValueTask WriteFailedAuditAsync(
+        OperationDescriptor operation,
+        string requestId,
+        object? request,
+        CapabilityAuthorizationDecision? authorization,
+        string errorCode,
+        long startedAt,
+        CancellationToken cancellationToken)
+    {
+        CapabilityAuthorizationDecision effectiveAuthorization = authorization ?? CapabilityAuthorizationDecision.Denied(
+            PluginOperationMetadataCatalog.Resolve(operation.OperationId).PermissionScope,
+            "The request failed before authorization completed.");
+        return WriteAuditAsync(
+            operation,
+            requestId,
+            request,
+            result: null,
+            effectiveAuthorization,
+            succeeded: false,
+            errorCode,
+            (long)Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds,
+            cancellationToken);
     }
 }

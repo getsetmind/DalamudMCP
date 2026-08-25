@@ -141,6 +141,19 @@ public sealed class PluginMcpServerControllerTests
             toolNames.OrderBy(static name => name, StringComparer.Ordinal));
     }
 
+    [Theory]
+    [InlineData("{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}")]
+    [InlineData("event: message\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\n\n")]
+    public void TryParseMcpResponse_accepts_json_and_sse(string body)
+    {
+        bool parsed = PluginMcpServerController.TryParseMcpResponse(body, out JsonDocument? document);
+
+        Assert.True(parsed);
+        Assert.NotNull(document);
+        using (document)
+            Assert.Equal("2.0", document.RootElement.GetProperty("jsonrpc").GetString());
+    }
+
     [Fact]
     public void TryParseListeningProcessIds_reads_listening_pids_for_port()
     {

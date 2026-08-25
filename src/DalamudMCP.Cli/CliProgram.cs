@@ -42,6 +42,7 @@ public static class CliProgram
             {
                 CliCommandMode.ServeMcp => await CliMcpServerRunner.RunAsync(options, cancellationToken).ConfigureAwait(false),
                 CliCommandMode.ServeHttp => await CliHttpServerRunner.RunAsync(options, cancellationToken).ConfigureAwait(false),
+                CliCommandMode.SuperviseSelfPackage => await SelfPackageSupervisorRunner.RunAsync(options, output, error, cancellationToken).ConfigureAwait(false),
                 _ => await RunDirectCliAsync(options, output, error, rawOutput, cancellationToken).ConfigureAwait(false)
             };
         }

@@ -29,6 +29,13 @@ public enum ProtocolValueKind
     Json = 9
 }
 
+public enum ProtocolOperationEffect
+{
+    ReadOnly = 0,
+    Mutation = 1,
+    Destructive = 2
+}
+
 [MemoryPackable]
 public sealed partial record ProtocolParameterDescriptor(
     string Name,
@@ -41,7 +48,13 @@ public sealed partial record ProtocolParameterDescriptor(
     string? Description = null,
     IReadOnlyList<string>? Aliases = null,
     string? CliName = null,
-    string? McpName = null);
+    string? McpName = null,
+    double? Minimum = null,
+    double? Maximum = null,
+    int? MinLength = null,
+    int? MaxLength = null,
+    int? MaxItems = null,
+    IReadOnlyList<string>? AllowedValues = null);
 
 [MemoryPackable]
 public sealed partial record ProtocolOperationDescriptor(
@@ -53,7 +66,14 @@ public sealed partial record ProtocolOperationDescriptor(
     IReadOnlyList<string>? CliCommandPath = null,
     IReadOnlyList<IReadOnlyList<string>>? CliCommandAliases = null,
     string? McpToolName = null,
-    bool Hidden = false);
+    bool Hidden = false,
+    ProtocolOperationEffect Effect = ProtocolOperationEffect.ReadOnly,
+    string PermissionScope = "game.read",
+    bool Idempotent = true,
+    bool OpenWorld = false,
+    bool SupportsDryRun = false,
+    bool RequiresFrameworkThread = false,
+    string? OutputSchemaJson = null);
 
 [MemoryPackable]
 [ProtocolOperation("__system.describe-operations")]

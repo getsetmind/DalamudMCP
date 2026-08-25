@@ -19,6 +19,11 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+& (Join-Path $PSScriptRoot 'update-tools.ps1') -Check
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 & (Join-Path $PSScriptRoot 'format.ps1') -Solution $Solution -NoRestore
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE

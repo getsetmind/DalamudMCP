@@ -32,6 +32,7 @@ public sealed class PluginEntryPoint : IDalamudPlugin
         IGameGui gameGui,
         IChatGui chatGui,
         ITargetManager targetManager,
+        IPartyList partyList,
         ICommandManager commandManager)
     {
         ArgumentNullException.ThrowIfNull(pluginInterface);
@@ -46,6 +47,7 @@ public sealed class PluginEntryPoint : IDalamudPlugin
         ArgumentNullException.ThrowIfNull(gameGui);
         ArgumentNullException.ThrowIfNull(chatGui);
         ArgumentNullException.ThrowIfNull(targetManager);
+        ArgumentNullException.ThrowIfNull(partyList);
         ArgumentNullException.ThrowIfNull(commandManager);
 
         this.pluginInterface = pluginInterface;
@@ -64,8 +66,10 @@ public sealed class PluginEntryPoint : IDalamudPlugin
             gameGui,
             chatGui,
             targetManager,
+            partyList,
             commandManager);
         compositionRoot.StartAsync().GetAwaiter().GetResult();
+        _ = compositionRoot.GetRequiredService<Services.GameStateEventMonitor>();
         ProtocolClientDiscovery.Write(
             new ProtocolClientDiscoveryRecord(
                 compositionRoot.Options.PipeName,
@@ -80,8 +84,8 @@ public sealed class PluginEntryPoint : IDalamudPlugin
                 compositionRoot.Options.PipeName),
             () => Hosting.PluginOperationExposurePolicy.GetExpectedMcpToolNames(
                 operations,
-                configurationStore.Current.EnableActionOperations,
-                configurationStore.Current.EnableUnsafeOperations));
+                configurationStore.Current),
+            configurationStore.Current.HttpBearerToken);
         configWindow = new PluginConfigWindow(
             compositionRoot.Options,
             compositionRoot.ProtocolServer,
@@ -89,6 +93,7 @@ public sealed class PluginEntryPoint : IDalamudPlugin
             mcpServerController,
             operations,
             compositionRoot.GetServices<IPluginReaderStatus>(),
+            compositionRoot.GetRequiredService<Hosting.CapabilityApprovalService>(),
             compositionRoot.GetRequiredService<IUiLocalization>());
         if (configurationStore.Current.AutoStartHttpServerOnLoad)
             _ = mcpServerController.Start();

@@ -72,6 +72,43 @@ public sealed class CliRuntimeOptionsTests : IDisposable
     }
 
     [Fact]
+    public void TryParse_recognizes_self_package_supervisor_mode()
+    {
+        bool parsed = CliRuntimeOptions.TryParse(
+            ["--pipe", "DalamudMCP.1234", "supervise", "self-package", "--action", "update"],
+            out CliRuntimeOptions? options,
+            out string? errorMessage);
+
+        Assert.True(parsed);
+        Assert.Null(errorMessage);
+        Assert.Equal(CliCommandMode.SuperviseSelfPackage, options?.Mode);
+        Assert.Equal(["--action", "update"], options?.CommandArguments);
+    }
+
+    [Fact]
+    public void Self_package_supervisor_parser_bounds_action_and_timeout()
+    {
+        Assert.True(SelfPackageSupervisorRunner.TryParse(
+            ["--action", "update", "--use-testing", "--timeout-seconds", "120"],
+            out string? action,
+            out bool useTesting,
+            out TimeSpan timeout,
+            out string? error));
+        Assert.Null(error);
+        Assert.Equal("update", action);
+        Assert.True(useTesting);
+        Assert.Equal(TimeSpan.FromSeconds(120), timeout);
+
+        Assert.False(SelfPackageSupervisorRunner.TryParse(
+            ["--action", "install"],
+            out _,
+            out _,
+            out _,
+            out error));
+        Assert.Contains("update or --action uninstall", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TryParse_extracts_http_server_options()
     {
         bool parsed = CliRuntimeOptions.TryParse(["serve", "http", "--port", "39555", "--path", "custom"], out CliRuntimeOptions? options, out string? errorMessage);

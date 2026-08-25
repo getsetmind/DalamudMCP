@@ -29,6 +29,7 @@ public static class PluginServiceCollectionExtensions
         IGameGui gameGui,
         IChatGui chatGui,
         ITargetManager targetManager,
+        IPartyList partyList,
         ICommandManager commandManager)
     {
         ArgumentNullException.ThrowIfNull(pluginInterface);
@@ -45,6 +46,7 @@ public static class PluginServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(gameGui);
         ArgumentNullException.ThrowIfNull(chatGui);
         ArgumentNullException.ThrowIfNull(targetManager);
+        ArgumentNullException.ThrowIfNull(partyList);
         ArgumentNullException.ThrowIfNull(commandManager);
 
         ServiceCollection services = new();
@@ -64,8 +66,18 @@ public static class PluginServiceCollectionExtensions
         services.AddSingleton(gameGui);
         services.AddSingleton(chatGui);
         services.AddSingleton(targetManager);
+        services.AddSingleton(partyList);
         services.AddSingleton(commandManager);
         services.AddSingleton<Services.ChatLogBufferService>();
+        services.AddSingleton<Services.GameEventBufferService>();
+        services.AddSingleton<Services.GameStateEventMonitor>();
+        services.AddSingleton<Services.ScreenshotFileCleanupService>();
+        services.AddSingleton<Services.GameDataSheetService>();
+        services.AddSingleton<Services.PluginInspectionService>();
+        services.AddSingleton<IPluginManagerAdapter, DalamudPluginManagerAdapter>();
+        services.AddSingleton<OperationAuditLog>();
+        services.AddSingleton<CapabilityApprovalService>();
+        services.AddSingleton<CapabilityRateLimiter>();
         services.AddSingleton<IPluginIpcGateway, PluginIpcGateway>();
         services.AddSingleton<IPluginDataRelayService, PluginDataRelayService>();
         services.AddGeneratedPluginOperations();

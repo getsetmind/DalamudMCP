@@ -2,9 +2,9 @@ using System.Globalization;
 using System.Runtime.Versioning;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin.Services;
-using Manifold;
 using DalamudMCP.Plugin.Readers;
 using DalamudMCP.Protocol;
+using Manifold;
 using MemoryPack;
 
 namespace DalamudMCP.Plugin.Operations;
@@ -28,13 +28,15 @@ public sealed partial class DutyContextOperation
     public DutyContextOperation(
         IFramework framework,
         IClientState clientState,
-        ICondition condition)
+        ICondition condition,
+        IDataManager dataManager)
     {
         ArgumentNullException.ThrowIfNull(framework);
         ArgumentNullException.ThrowIfNull(clientState);
         ArgumentNullException.ThrowIfNull(condition);
+        ArgumentNullException.ThrowIfNull(dataManager);
 
-        executor = CreateDalamudExecutor(framework, clientState, condition);
+        executor = CreateDalamudExecutor(framework, clientState, condition, dataManager);
         isReadyProvider = () => clientState.IsLoggedIn;
         detailProvider = () => clientState.IsLoggedIn ? "ready" : "not_logged_in";
         unavailableDetail = "not_logged_in";
@@ -85,17 +87,18 @@ public sealed partial class DutyContextOperation
     private static Func<CancellationToken, ValueTask<DutyContextSnapshot>> CreateDalamudExecutor(
         IFramework framework,
         IClientState clientState,
-        ICondition condition)
+        ICondition condition,
+        IDataManager dataManager)
     {
         return async cancellationToken =>
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             if (framework.IsInFrameworkUpdateThread)
-                return ReadCurrentCore(clientState, condition, cancellationToken);
+                return ReadCurrentCore(clientState, condition, dataManager, cancellationToken);
 
             return await framework.RunOnFrameworkThread(() =>
-                    ReadCurrentCore(clientState, condition, cancellationToken))
+                    ReadCurrentCore(clientState, condition, dataManager, cancellationToken))
                 .ConfigureAwait(false);
         };
     }
@@ -104,6 +107,7 @@ public sealed partial class DutyContextOperation
     private static DutyContextSnapshot ReadCurrentCore(
         IClientState clientState,
         ICondition condition,
+        IDataManager dataManager,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -115,7 +119,7 @@ public sealed partial class DutyContextOperation
             ConditionFlag.BoundByDuty,
             ConditionFlag.BoundByDuty56,
             ConditionFlag.BoundByDuty95);
-        string? dutyName = inDuty ? FormatDutyName(territoryId) : null;
+        string? dutyName = inDuty ? ResolveDutyName(dataManager, territoryId) : null;
         string dutyType = inDuty ? "duty" : "world";
         bool isDutyComplete = condition.Any(
             ConditionFlag.WatchingCutscene78,
@@ -144,11 +148,20 @@ public sealed partial class DutyContextOperation
         }
     }
 
-    private static string FormatDutyName(int? territoryId)
+    private static string ResolveDutyName(IDataManager dataManager, int? territoryId)
     {
-        return territoryId is null
-            ? "Unknown duty"
-            : $"Territory#{territoryId.Value.ToString(CultureInfo.InvariantCulture)}";
+        if (territoryId is null || territoryId < 0)
+            return "Unknown duty";
+        Lumina.Excel.Sheets.TerritoryType? territory = dataManager
+            .GetExcelSheet<Lumina.Excel.Sheets.TerritoryType>()?
+            .GetRowOrDefault((uint)territoryId.Value);
+        string? dutyName = territory?.ContentFinderCondition.ValueNullable?.Name.ToString();
+        if (!string.IsNullOrWhiteSpace(dutyName))
+            return dutyName;
+        string? territoryName = territory?.PlaceName.ValueNullable?.Name.ToString();
+        return string.IsNullOrWhiteSpace(territoryName)
+            ? $"Territory#{territoryId.Value.ToString(CultureInfo.InvariantCulture)}"
+            : territoryName;
     }
 
     private static string FormatDutySummary(bool inDuty, string dutyName, int? territoryId, bool isDutyComplete)

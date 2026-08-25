@@ -28,6 +28,7 @@ Supported scripts:
 - `./build/format.ps1`
 - `./build/quality.ps1`
 - `./build/architecture.ps1`
+- `./build/update-tools.ps1`
 
 Helper scripts:
 

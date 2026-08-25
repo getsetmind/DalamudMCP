@@ -29,6 +29,18 @@
       <HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
       <Private>true</Private>
     </Reference>
+    <Reference Include="Lumina" Condition="Exists('$(DalamudLibPath)Lumina.dll')">
+      <HintPath>$(DalamudLibPath)Lumina.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Lumina.Excel" Condition="Exists('$(DalamudLibPath)Lumina.Excel.dll')">
+      <HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="FFXIVClientStructs" Condition="Exists('$(DalamudLibPath)FFXIVClientStructs.dll')">
+      <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
     <Content Include="$(DalamudLibPath)Dalamud.dll" Link="Dalamud.dll" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="$(DalamudLibPath)Dalamud.Bindings.ImGui.dll" Condition="Exists('$(DalamudLibPath)Dalamud.Bindings.ImGui.dll')" Link="Dalamud.Bindings.ImGui.dll" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="$(DalamudLibPath)Lumina.dll" Condition="Exists('$(DalamudLibPath)Lumina.dll')" Link="Lumina.dll" CopyToOutputDirectory="PreserveNewest" />

@@ -2,8 +2,10 @@ using System.Buffers.Binary;
 using System.Globalization;
 using System.IO.Pipes;
 using System.Net;
-using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using DalamudMCP.Protocol;
+using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
 
 namespace DalamudMCP.Cli.Tests;
 
@@ -12,8 +14,10 @@ public sealed class CliHttpServerRunnerTests
     private static readonly string[] PlayerContextCliPath = ["player", "context"];
     private static readonly string[][] EmptyCliAliases = [];
 
-    [Fact]
-    public async Task RunAsync_serves_streamable_http_endpoint()
+    [Theory]
+    [InlineData("2025-03-26")]
+    [InlineData("2026-07-28")]
+    public async Task RunAsync_serves_streamable_http_endpoint_for_supported_protocol_versions(string protocolVersion)
     {
         string pipeName = $"DalamudMCP.Test.{Guid.NewGuid():N}";
         int port = GetFreePort();
@@ -25,6 +29,8 @@ public sealed class CliHttpServerRunnerTests
         Assert.True(parsed);
         Assert.Null(errorMessage);
 
+        const string bearerToken = "integration-test-token";
+        Environment.SetEnvironmentVariable(ProtocolContract.HttpBearerTokenEnvironmentVariableName, bearerToken);
         using CancellationTokenSource cancellationTokenSource = new(TimeSpan.FromSeconds(10));
         Task describeServerTask = RunDescribeOperationsServerAsync(pipeName, cancellationTokenSource.Token);
         Task<int> runnerTask = CliHttpServerRunner.RunAsync(options, cancellationTokenSource.Token);
@@ -33,59 +39,82 @@ public sealed class CliHttpServerRunnerTests
         {
             Timeout = TimeSpan.FromSeconds(5)
         };
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
 
         Uri endpoint = new($"http://127.0.0.1:{port}/mcp");
         await WaitForServerAsync(client, endpoint, cancellationTokenSource.Token);
 
+        using HttpResponseMessage unauthorizedResponse = await client.GetAsync(endpoint, cancellationTokenSource.Token);
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthorizedResponse.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
         using HttpResponseMessage healthResponse = await client.GetAsync(endpoint, cancellationTokenSource.Token);
         Assert.Equal(HttpStatusCode.MethodNotAllowed, healthResponse.StatusCode);
-        Assert.True(healthResponse.Headers.Contains("MCP-Protocol-Version"));
-        Assert.Contains("2025-03-26", healthResponse.Headers.GetValues("MCP-Protocol-Version"));
 
-        using HttpResponseMessage initializeResponse = await client.PostAsJsonAsync(
-            endpoint,
-            new
+        using HttpRequestMessage rejectedOriginRequest = new(HttpMethod.Get, endpoint);
+        rejectedOriginRequest.Headers.Add("Origin", "https://example.com");
+        using HttpResponseMessage rejectedOriginResponse = await client.SendAsync(
+            rejectedOriginRequest,
+            cancellationTokenSource.Token);
+        Assert.Equal(HttpStatusCode.Forbidden, rejectedOriginResponse.StatusCode);
+
+        await using HttpClientTransport transport = new(new HttpClientTransportOptions
+        {
+            Endpoint = endpoint,
+            TransportMode = HttpTransportMode.StreamableHttp,
+            AdditionalHeaders = new Dictionary<string, string>
             {
-                jsonrpc = "2.0",
-                id = "init-1",
-                method = "initialize",
-                @params = new
+                ["Authorization"] = $"Bearer {bearerToken}"
+            }
+        });
+        await using McpClient mcpClient = await McpClient.CreateAsync(
+            transport,
+            new McpClientOptions
+            {
+                ProtocolVersion = protocolVersion,
+                ClientInfo = new Implementation
                 {
-                    protocolVersion = "2025-03-26",
-                    capabilities = new { },
-                    clientInfo = new
-                    {
-                        name = "DalamudMCP.Cli.Tests",
-                        version = "1.0.0"
-                    }
-                }
+                    Name = "DalamudMCP.Cli.Tests",
+                    Version = "1.0.0"
+                },
+                Capabilities = new ClientCapabilities()
             },
-            cancellationTokenSource.Token);
-        string initializeJson = await initializeResponse.Content.ReadAsStringAsync(cancellationTokenSource.Token);
-        Assert.Equal(HttpStatusCode.OK, initializeResponse.StatusCode);
-        Assert.Equal("text/event-stream", initializeResponse.Content.Headers.ContentType?.MediaType);
-        Assert.Contains("\"protocolVersion\"", initializeJson, StringComparison.Ordinal);
-        Assert.Contains("event: message", initializeJson, StringComparison.Ordinal);
-
-        using HttpResponseMessage toolsResponse = await client.PostAsJsonAsync(
-            endpoint,
-            new
-            {
-                jsonrpc = "2.0",
-                id = "tools-1",
-                method = "tools/list",
-                @params = new { }
-            },
-            cancellationTokenSource.Token);
-        string toolsJson = await toolsResponse.Content.ReadAsStringAsync(cancellationTokenSource.Token);
-        Assert.Equal(HttpStatusCode.OK, toolsResponse.StatusCode);
-        Assert.Equal("text/event-stream", toolsResponse.Content.Headers.ContentType?.MediaType);
-        Assert.Contains("\"get_player_context\"", toolsJson, StringComparison.Ordinal);
+            cancellationToken: cancellationTokenSource.Token);
+        var tools = await mcpClient.ListToolsAsync(cancellationToken: cancellationTokenSource.Token);
+        Assert.Contains(tools, static tool => string.Equals(tool.Name, "get_player_context", StringComparison.Ordinal));
 
         cancellationTokenSource.Cancel();
         await describeServerTask;
         int exitCode = await runnerTask;
         Assert.Equal(0, exitCode);
+        Environment.SetEnvironmentVariable(ProtocolContract.HttpBearerTokenEnvironmentVariableName, null);
+    }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("http://localhost:3000", true)]
+    [InlineData("https://127.0.0.1:8443", true)]
+    [InlineData("https://example.com", false)]
+    [InlineData("null", false)]
+    [InlineData("not a uri", false)]
+    public void IsAllowedOrigin_only_accepts_loopback_origins(string? origin, bool expected)
+    {
+        Assert.Equal(expected, CliHttpServerRunner.IsAllowedOrigin(origin));
+    }
+
+    [Theory]
+    [InlineData(null, null, false)]
+    [InlineData(null, "secret", false)]
+    [InlineData("Basic secret", "secret", false)]
+    [InlineData("Bearer wrong", "secret", false)]
+    [InlineData("Bearer secret", "secret", true)]
+    public void IsAuthorized_validates_configured_bearer_token(
+        string? authorizationHeader,
+        string? configuredToken,
+        bool expected)
+    {
+        Assert.Equal(expected, CliHttpServerRunner.IsAuthorized(authorizationHeader, configuredToken));
     }
 
     private static async Task WaitForServerAsync(HttpClient client, Uri endpoint, CancellationToken cancellationToken)
@@ -95,7 +124,7 @@ public sealed class CliHttpServerRunnerTests
             try
             {
                 using HttpResponseMessage response = await client.GetAsync(endpoint, cancellationToken);
-                if (response.StatusCode == HttpStatusCode.MethodNotAllowed)
+                if (response.StatusCode is HttpStatusCode.MethodNotAllowed or HttpStatusCode.Unauthorized)
                     return;
             }
             catch (HttpRequestException)
