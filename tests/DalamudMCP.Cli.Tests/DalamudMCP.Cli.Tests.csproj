@@ -15,4 +15,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\.mcp\server.json"
+             Link=".mcp\server.json"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

@@ -3,6 +3,19 @@
     <RootNamespace>DalamudMCP.Cli</RootNamespace>
     <AssemblyName>DalamudMCP.Cli</AssemblyName>
     <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <PackageType>McpServer</PackageType>
+    <ToolCommandName>dalamudmcp</ToolCommandName>
+    <PackageId>DalamudMCP.Cli</PackageId>
+    <Authors>getsetmind</Authors>
+    <Description>Windows-local MCP server and CLI bridge for a running FFXIV session through Dalamud.</Description>
+    <PackageTags>ffxiv;ff14;dalamud;mcp;mcp-server;model-context-protocol</PackageTags>
+    <PackageProjectUrl>https://github.com/getsetmind/DalamudMCP</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/getsetmind/DalamudMCP.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -15,5 +28,9 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DalamudMCP.Protocol\DalamudMCP.Protocol.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="/" Link="README.md" />
+    <None Include="..\..\.mcp\server.json" Pack="true" PackagePath=".mcp/server.json" Link=".mcp/server.json" />
   </ItemGroup>
 </Project>
