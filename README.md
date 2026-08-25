@@ -1,6 +1,40 @@
-# DalamudMCP
+# DalamudMCP: FFXIV MCP Server for Dalamud
 
-`DalamudMCP` exposes live FFXIV state from a Dalamud plugin to both a local CLI and MCP clients.
+<!-- mcp-name: io.github.getsetmind/dalamudmcp -->
+
+`DalamudMCP` is a Windows-local [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server and Dalamud plugin for Final Fantasy XIV (FFXIV / FF14).
+It connects MCP-compatible AI clients and a command-line interface to a running game session through a current-user-only local bridge.
+
+日本語: [セットアップガイド](./docs/getting-started.ja.md)
+
+> [!IMPORTANT]
+> DalamudMCP requires Windows, Final Fantasy XIV, and Dalamud.
+> Observation tools are enabled by default, while actions and unsafe integrations require explicit opt-in from the plugin UI.
+
+## Requirements
+
+- Windows with Final Fantasy XIV running through XIVLauncher and Dalamud
+- .NET 10 SDK for building and running the CLI from source
+- a local Dalamud development installation for building the plugin
+
+## Quick Start
+
+Build the plugin and CLI:
+
+```powershell
+.\build\restore.ps1
+.\build\build.ps1 -NoRestore
+```
+
+Load `src/DalamudMCP.Plugin/bin/Debug/DalamudMCP.dll` as a development plugin, then start the stdio MCP server:
+
+```powershell
+dotnet run --project .\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj -- serve mcp
+```
+
+For plugin loading, HTTP transport, security settings, and release packaging, see [Install And Run](#install-and-run).
+
+## How It Works
 
 The current codebase is built around:
 
