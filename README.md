@@ -5,7 +5,7 @@
 `DalamudMCP` is a Windows-local [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server and Dalamud plugin for Final Fantasy XIV (FFXIV / FF14).
 It connects MCP-compatible AI clients and a command-line interface to a running game session through a current-user-only local bridge.
 
-日本語: [セットアップガイド](./docs/getting-started.ja.md)
+日本語: [セットアップガイド](./GETTING_STARTED.ja.md)
 
 > [!IMPORTANT]
 > DalamudMCP requires Windows, Final Fantasy XIV, and Dalamud.

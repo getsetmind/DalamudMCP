@@ -3,7 +3,7 @@
 DalamudMCP は、Final Fantasy XIV（FFXIV / FF14）の状態を MCP クライアントやコマンドラインから扱うための、Windows 向けローカルサーバーと Dalamud プラグインです。
 ゲーム内の処理は Dalamud プラグインが担当し、CLI と MCP サーバーは同じ Windows ユーザーだけが接続できる名前付きパイプを通して通信します。
 
-[English README](../README.md)
+[English README](./README.md)
 
 ## 必要なもの
 
@@ -74,7 +74,7 @@ HTTP クライアントは `Authorization: Bearer <token>` ヘッダーを送信
 状態を読む機能は初期状態で有効です。
 ゲーム内操作を変更する機能は初期状態で無効になっており、プラグインの設定画面で明示的に許可する必要があります。
 危険性の高い連携機能には別の開発者向け設定があり、許可されていない機能は MCP のツール一覧にも表示されません。
-許可範囲の詳しい設定方法は、[Capability Kernel](../design/capability-kernel.md) を参照してください。
+許可範囲の詳しい設定方法は、[Capability Kernel](./design/capability-kernel.md) を参照してください。
 
 ## うまく接続できない場合
 
@@ -84,4 +84,4 @@ HTTP クライアントは `Authorization: Bearer <token>` ヘッダーを送信
 4. HTTP 接続では、エンドポイントと Bearer トークンが一致していることを確認します。
 5. ビルドに失敗する場合は、`DALAMUD_HOME` が Dalamud の `Hooks\dev` を指していることを確認します。
 
-利用できるコマンドとツールの一覧は、[README の Current Tool Surface](../README.md#current-tool-surface) にあります。
+利用できるコマンドとツールの一覧は、[README の Current Tool Surface](./README.md#current-tool-surface) にあります。
