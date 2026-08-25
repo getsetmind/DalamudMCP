@@ -1,0 +1,72 @@
+name: publish-mcp-registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Annotated release tag to publish
+        required: true
+        default: v1.1.0
+        type: string
+
+run-name: Publish MCP Registry entry from ${{ inputs.ref }}
+
+concurrency:
+  group: publish-mcp-registry-${{ inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - name: Verify release tag and package version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(git describe --tags --exact-match HEAD)"
+          version="$(sed -n 's:.*<Version>\([^<]*\)</Version>.*:\1:p' Directory.Build.props)"
+          if [[ "$tag" != "v$version" ]]; then
+            echo "Tag $tag does not match package version $version." >&2
+            exit 1
+          fi
+
+          manifest_version="$(jq -r '.version' .mcp/server.json)"
+          package_version="$(jq -r '.packages[0].version' .mcp/server.json)"
+          if [[ "$manifest_version" != "$version" || "$package_version" != "$version" ]]; then
+            echo "server.json does not match package version $version." >&2
+            exit 1
+          fi
+      - name: Verify NuGet package ownership marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(jq -r '.packages[0].version' .mcp/server.json)"
+          readme_url="https://api.nuget.org/v3-flatcontainer/dalamudmcp.cli/$version/readme"
+          curl --fail --silent --show-error --retry 10 --retry-delay 15 "$readme_url" \
+            | grep --fixed-strings 'mcp-name: io.github.getsetmind/dalamudmcp'
+      - name: Install pinned MCP publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --output mcp-publisher.tar.gz \
+            https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz
+          echo 'a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc  mcp-publisher.tar.gz' \
+            | sha256sum --check
+          tar --extract --gzip --file mcp-publisher.tar.gz mcp-publisher
+          ./mcp-publisher --version
+      - name: Validate manifest
+        shell: bash
+        run: ./mcp-publisher validate .mcp/server.json
+      - name: Authenticate with GitHub OIDC
+        shell: bash
+        run: ./mcp-publisher login github-oidc
+      - name: Publish to the official MCP Registry
+        shell: bash
+        run: ./mcp-publisher publish .mcp/server.json
