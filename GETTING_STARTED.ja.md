@@ -58,6 +58,15 @@ dotnet run --project .\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj -- inventory sum
 dotnet run --project .\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj -- serve mcp
 ```
 
+バージョン 1.1.0 が NuGet.org へ公開された後は、CLI を常設せずに起動できます。
+
+```powershell
+dnx DalamudMCP.Cli@1.1.0 --yes serve mcp
+```
+
+NuGet パッケージに含まれるのは CLI と MCP サーバーです。
+Dalamud プラグインは別途ビルドして読み込み、FFXIV とともに起動しておく必要があります。
+
 ローカル HTTP で起動する場合は、Bearer トークンを設定します。
 
 ```powershell

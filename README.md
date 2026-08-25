@@ -32,6 +32,12 @@ Load `src/DalamudMCP.Plugin/bin/Debug/DalamudMCP.dll` as a development plugin, t
 dotnet run --project .\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj -- serve mcp
 ```
 
+After version 1.1.0 is available on NuGet.org, the CLI can also be run without a permanent installation:
+
+```powershell
+dnx DalamudMCP.Cli@1.1.0 --yes serve mcp
+```
+
 For plugin loading, HTTP transport, security settings, and release packaging, see [Install And Run](#install-and-run).
 
 ## How It Works
@@ -189,6 +195,15 @@ The `plugin.self.manage` capability must be explicitly confirmed or allowed befo
 ```powershell
 dotnet run --project .\src\DalamudMCP.Cli\DalamudMCP.Cli.csproj -- serve mcp
 ```
+
+Once version 1.1.0 is available on NuGet.org, the equivalent package command is:
+
+```powershell
+dnx DalamudMCP.Cli@1.1.0 --yes serve mcp
+```
+
+The NuGet package contains the CLI and MCP server only.
+The Dalamud plugin must still be built, loaded, and running in the local FFXIV session.
 
 Local HTTP MCP:
 

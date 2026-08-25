@@ -1,15 +1,15 @@
 {
-  "Author": "OpenAI",
+  "Author": "Garume",
   "Name": "DalamudMCP",
   "InternalName": "DalamudMCP",
-  "AssemblyVersion": "0.3.0.0",
-  "Punchline": "Local MCP/CLI bridge for FFXIV context.",
+  "AssemblyVersion": "1.1.0.0",
+  "Punchline": "Local FFXIV MCP server and CLI bridge.",
   "Description": "Serves live FFXIV observation and action tools from within Dalamud over a local named pipe.",
   "ApplicableVersion": "any",
   "Tags": [
-    "mcp",
-    "cli",
-    "automation"
+    "ffxiv",
+    "dalamud",
+    "mcp"
   ],
   "DalamudApiLevel": 15,
   "LoadRequiredState": 0,
